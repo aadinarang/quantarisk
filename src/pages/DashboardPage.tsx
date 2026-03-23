@@ -6,7 +6,7 @@ import { KpiCard } from "@/components/KpiCard";
 import { RiskBadge } from "@/components/RiskBadge";
 import { VolatilityChart } from "@/components/VolatilityChart";
 import { cn } from "@/lib/utils";
-import type { DriftSummaryItem } from "@/lib/api";
+import type { DriftSummaryItem, RiskLevel } from "@/lib/api";
 
 export default function DashboardPage() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
@@ -15,14 +15,12 @@ export default function DashboardPage() {
   const { data: driftSummary } = useDriftSummary();
   const { data: history } = useRiskHistory(selectedSymbol);
 
-  // Auto-select first symbol when data loads
   useEffect(() => {
     if (!selectedSymbol && symbols && symbols.length > 0) {
       setSelectedSymbol(symbols[0].symbol);
     }
   }, [symbols, selectedSymbol]);
 
-  // Build a drift lookup map
   const driftMap = new Map<string, DriftSummaryItem>();
   driftSummary?.forEach((d) => driftMap.set(d.symbol, d));
 
@@ -65,19 +63,18 @@ export default function DashboardPage() {
           <h2 className="text-sm font-medium text-foreground">
             Volatility trend — <span className="font-mono text-primary">{selectedSymbol}</span>
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5 mb-4">20‑day rolling volatility (recent vs baseline)</p>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-4">20‑day rolling volatility</p>
           {history?.points ? (
             <VolatilityChart points={history.points} />
           ) : (
             <p className="text-sm text-muted-foreground py-12 text-center">Loading chart data…</p>
           )}
           <p className="text-[11px] text-muted-foreground mt-3">
-            Volatility is computed as rolling standard deviation of daily log returns.
+            Volatility is computed from rolling standard deviation of daily log returns.
           </p>
         </div>
       )}
 
-      {/* Helper text */}
       <p className="text-xs text-muted-foreground text-center">
         Click a symbol to update the chart · Double‑click to open symbol details.
       </p>
@@ -153,11 +150,11 @@ function SymbolRow({
   const { data: snap } = useRiskSnapshot(symbol);
   const riskLevel = snap?.currentRisk;
 
-  const rowBg = riskLevel === "high"
+  const rowBg = riskLevel === "HIGH"
     ? "risk-high-row"
-    : riskLevel === "medium"
+    : riskLevel === "MEDIUM"
     ? "risk-medium-row"
-    : riskLevel === "low"
+    : riskLevel === "LOW"
     ? "risk-low-row"
     : "";
 
@@ -179,7 +176,7 @@ function SymbolRow({
         {driftItem?.driftFlag ? (
           <span className="text-risk-medium-text text-xs font-medium">⚠ Drift ({driftItem.driftScore.toFixed(3)})</span>
         ) : (
-          <span className="text-muted-foreground text-xs">None</span>
+          <span className="text-muted-foreground text-xs">Stable</span>
         )}
       </td>
     </tr>

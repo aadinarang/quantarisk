@@ -14,12 +14,17 @@ export default function SymbolDetailPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Dashboard
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
       </Link>
+
+      <div>
+        <h1 className="text-lg font-semibold text-foreground">Symbol Detail</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">In-depth risk analysis</p>
+      </div>
 
       {/* Header */}
       <div className="animate-fade-in flex items-center gap-4 flex-wrap">
-        <h1 className="text-2xl font-semibold font-mono text-foreground">{symbol}</h1>
+        <h2 className="text-2xl font-semibold font-mono text-foreground">{symbol}</h2>
         {snap && <RiskBadge level={snap.currentRisk} />}
         {snap?.driftFlag && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-risk-high-muted border border-risk-high/30 px-3 py-1 text-xs font-semibold text-risk-high-text">
@@ -34,7 +39,7 @@ export default function SymbolDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
           {/* Left: chart */}
           <div className="lg:col-span-2 rounded-lg border border-border bg-card p-5">
-            <h2 className="text-sm font-medium text-foreground mb-4">Volatility History</h2>
+            <h3 className="text-sm font-medium text-foreground mb-4">Volatility History</h3>
             {history?.points ? (
               <VolatilityChart points={history.points} height={360} />
             ) : (
@@ -63,8 +68,8 @@ export default function SymbolDetailPage() {
             </div>
             <div className="pt-2 border-t border-border">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                A drift flag indicates a statistically significant shift in the volatility regime compared to the reference window.
-                This may signal changing market conditions that require portfolio review.
+                Drift is computed by comparing recent and reference volatility distributions.
+                A flag indicates the asset has moved into a different volatility regime.
               </p>
             </div>
           </div>

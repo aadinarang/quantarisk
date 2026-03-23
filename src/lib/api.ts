@@ -1,5 +1,7 @@
-// Types
-export interface Symbol {
+import { mockApi } from "./mock-data";
+
+// ── Types ──────────────────────────────────────────────
+export interface SymbolInfo {
   symbol: string;
   name: string;
 }
@@ -12,9 +14,11 @@ export interface RiskOverview {
   lastUpdated: string;
 }
 
-export interface RiskSnapshot {
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+export interface SymbolSnapshot {
   symbol: string;
-  currentRisk: "high" | "medium" | "low";
+  currentRisk: RiskLevel;
   currentVolatility: number;
   driftFlag: boolean;
   driftScore: number;
@@ -23,10 +27,10 @@ export interface RiskSnapshot {
 export interface HistoryPoint {
   date: string;
   volatility: number;
-  riskLevel: "high" | "medium" | "low";
+  riskLevel: RiskLevel;
 }
 
-export interface RiskHistory {
+export interface SymbolHistory {
   symbol: string;
   points: HistoryPoint[];
 }
@@ -37,6 +41,9 @@ export interface DriftSummaryItem {
   driftScore: number;
 }
 
+// ── Config ─────────────────────────────────────────────
+// Set to false to use the real FastAPI backend via /api/...
+const USE_MOCK = true;
 const API_BASE = "/api";
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -45,10 +52,12 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json();
 }
 
-export const api = {
-  getSymbols: () => fetchJson<Symbol[]>("/symbols"),
+const liveApi = {
+  getSymbols: () => fetchJson<SymbolInfo[]>("/symbols"),
   getRiskOverview: () => fetchJson<RiskOverview>("/risk/overview"),
-  getRiskSnapshot: (symbol: string) => fetchJson<RiskSnapshot>(`/risk/snapshot?symbol=${symbol}`),
-  getRiskHistory: (symbol: string) => fetchJson<RiskHistory>(`/risk/history?symbol=${symbol}`),
+  getRiskSnapshot: (symbol: string) => fetchJson<SymbolSnapshot>(`/risk/snapshot?symbol=${symbol}`),
+  getRiskHistory: (symbol: string) => fetchJson<SymbolHistory>(`/risk/history?symbol=${symbol}`),
   getDriftSummary: () => fetchJson<DriftSummaryItem[]>("/drift/summary"),
 };
+
+export const api = USE_MOCK ? mockApi : liveApi;

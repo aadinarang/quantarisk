@@ -4,25 +4,27 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [lowMedQuantile, setLowMedQuantile] = useState("0.50");
   const [medHighQuantile, setMedHighQuantile] = useState("0.80");
   const [recentWindow, setRecentWindow] = useState("30");
   const [referenceWindow, setReferenceWindow] = useState("180");
 
   const handleSaveThresholds = () => {
-    toast({ title: "Thresholds saved", description: `Low/Med: ${lowMedQuantile}, Med/High: ${medHighQuantile}` });
+    toast({ title: "Thresholds saved (mock)", description: `Low/Med: ${lowMedQuantile}, Med/High: ${medHighQuantile}` });
   };
 
   const handleSaveWindows = () => {
-    toast({ title: "Windows saved", description: `Recent: ${recentWindow}d, Reference: ${referenceWindow}d` });
+    toast({ title: "Windows saved (mock)", description: `Recent: ${recentWindow}d, Reference: ${referenceWindow}d` });
   };
 
   const handleRefresh = () => {
-    toast({ title: "Refresh triggered", description: "Data refresh has been requested." });
-    console.log("[Settings] Manual data refresh triggered");
+    queryClient.invalidateQueries();
+    toast({ title: "Triggered data refresh (demo)", description: "All dashboard queries have been re-fetched." });
   };
 
   return (
@@ -33,8 +35,8 @@ export default function SettingsPage() {
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed">
-        These settings control how volatility quantiles and windows are computed.
-        For the capstone demo, they are stored in the app only, but the UI is designed to support backend persistence.
+        These settings control how volatility quantiles and window sizes are computed.
+        In this demo they are stored in the UI, but the design matches a real admin panel that could call backend endpoints.
       </p>
 
       {/* Risk thresholds */}
