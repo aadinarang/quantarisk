@@ -44,7 +44,7 @@ export interface DriftSummaryItem {
 // ── Config ─────────────────────────────────────────────
 // Set to false to use the real FastAPI backend via /api/...
 const USE_MOCK = true;
-const API_BASE = "/api";
+const API_BASE = "http://127.0.0.1:8000/api";
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`);
