@@ -23,7 +23,6 @@ export default function DriftPage() {
         <p className="text-sm text-muted-foreground mt-0.5">Symbols exhibiting regime drift</p>
       </div>
 
-      {/* Summary + toggle */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <p className="text-sm text-muted-foreground">
           Active drift symbols: <span className="font-mono font-medium text-foreground">{activeCount}</span> / <span className="font-mono">{totalCount}</span>
