@@ -1,21 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layers, AlertTriangle, ShieldAlert, ShieldCheck, Clock } from "lucide-react";
-import { useSymbols, useRiskOverview, useRiskSnapshot, useRiskHistory } from "@/hooks/use-risk-data";
+import { useSymbols, useRiskOverview, useRiskSnapshot, useRiskHistory, useDriftSummary } from "@/hooks/use-risk-data";
 import { KpiCard } from "@/components/KpiCard";
 import { RiskBadge } from "@/components/RiskBadge";
 import { VolatilityChart } from "@/components/VolatilityChart";
 import { cn } from "@/lib/utils";
-import type { RiskSnapshot } from "@/lib/api";
+import type { DriftSummaryItem } from "@/lib/api";
 
 export default function DashboardPage() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
-  const { data: overview, isLoading: ovLoading } = useRiskOverview();
+  const { data: overview } = useRiskOverview();
   const { data: symbols } = useSymbols();
+  const { data: driftSummary } = useDriftSummary();
   const { data: history } = useRiskHistory(selectedSymbol);
 
-  // Fetch snapshots for all symbols
-  const [snapshots, setSnapshots] = useState<Record<string, RiskSnapshot>>({});
+  // Auto-select first symbol when data loads
+  useEffect(() => {
+    if (!selectedSymbol && symbols && symbols.length > 0) {
+      setSelectedSymbol(symbols[0].symbol);
+    }
+  }, [symbols, selectedSymbol]);
+
+  // Build a drift lookup map
+  const driftMap = new Map<string, DriftSummaryItem>();
+  driftSummary?.forEach((d) => driftMap.set(d.symbol, d));
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -46,22 +55,32 @@ export default function DashboardPage() {
           symbols={symbols ?? []}
           selectedSymbol={selectedSymbol}
           onSelect={setSelectedSymbol}
+          driftMap={driftMap}
         />
       </div>
 
-      {/* Chart */}
+      {/* Volatility chart */}
       {selectedSymbol && (
         <div className="rounded-lg border border-border bg-card p-5 animate-fade-in">
-          <h2 className="text-sm font-medium text-foreground mb-4">
-            Volatility History — <span className="font-mono text-primary">{selectedSymbol}</span>
+          <h2 className="text-sm font-medium text-foreground">
+            Volatility trend — <span className="font-mono text-primary">{selectedSymbol}</span>
           </h2>
+          <p className="text-xs text-muted-foreground mt-0.5 mb-4">20‑day rolling volatility (recent vs baseline)</p>
           {history?.points ? (
             <VolatilityChart points={history.points} />
           ) : (
             <p className="text-sm text-muted-foreground py-12 text-center">Loading chart data…</p>
           )}
+          <p className="text-[11px] text-muted-foreground mt-3">
+            Volatility is computed as rolling standard deviation of daily log returns.
+          </p>
         </div>
       )}
+
+      {/* Helper text */}
+      <p className="text-xs text-muted-foreground text-center">
+        Click a symbol to update the chart · Double‑click to open symbol details.
+      </p>
     </div>
   );
 }
@@ -70,10 +89,12 @@ function SymbolTable({
   symbols,
   selectedSymbol,
   onSelect,
+  driftMap,
 }: {
   symbols: { symbol: string; name: string }[];
   selectedSymbol: string;
   onSelect: (s: string) => void;
+  driftMap: Map<string, DriftSummaryItem>;
 }) {
   const navigate = useNavigate();
 
@@ -98,6 +119,7 @@ function SymbolTable({
               isSelected={s.symbol === selectedSymbol}
               onSelect={() => onSelect(s.symbol)}
               onDetail={() => navigate(`/symbol/${s.symbol}`)}
+              driftItem={driftMap.get(s.symbol)}
             />
           ))}
           {symbols.length === 0 && (
@@ -119,12 +141,14 @@ function SymbolRow({
   isSelected,
   onSelect,
   onDetail,
+  driftItem,
 }: {
   symbol: string;
   name: string;
   isSelected: boolean;
   onSelect: () => void;
   onDetail: () => void;
+  driftItem?: DriftSummaryItem;
 }) {
   const { data: snap } = useRiskSnapshot(symbol);
   const riskLevel = snap?.currentRisk;
@@ -152,8 +176,8 @@ function SymbolRow({
       <td className="px-5 py-3">{riskLevel ? <RiskBadge level={riskLevel} /> : <span className="text-muted-foreground">—</span>}</td>
       <td className="px-5 py-3 font-mono tabular-nums">{snap?.currentVolatility?.toFixed(4) ?? "—"}</td>
       <td className="px-5 py-3">
-        {snap?.driftFlag ? (
-          <span className="text-risk-medium-text text-xs font-medium">⚠ Drift</span>
+        {driftItem?.driftFlag ? (
+          <span className="text-risk-medium-text text-xs font-medium">⚠ Drift ({driftItem.driftScore.toFixed(3)})</span>
         ) : (
           <span className="text-muted-foreground text-xs">None</span>
         )}
