@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 
 interface KpiCardProps {
@@ -6,30 +7,69 @@ interface KpiCardProps {
   value: string | number;
   icon: LucideIcon;
   variant?: "default" | "high" | "medium" | "low";
+  delay?: number;
 }
 
-const variantStyles = {
-  default: "border-border",
-  high: "border-risk-high/30 bg-risk-high-muted/50",
-  medium: "border-risk-medium/30 bg-risk-medium-muted/50",
-  low: "border-risk-low/30 bg-risk-low-muted/50",
+const borderColors = {
+  default: "bg-muted-foreground/20",
+  high: "bg-risk-high",
+  medium: "bg-risk-medium",
+  low: "bg-risk-low",
 };
 
-const iconStyles = {
+const iconColors = {
   default: "text-muted-foreground",
   high: "text-risk-high-text",
   medium: "text-risk-medium-text",
   low: "text-risk-low-text",
 };
 
-export function KpiCard({ label, value, icon: Icon, variant = "default" }: KpiCardProps) {
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<number>(0);
+
+  useEffect(() => {
+    if (isNaN(target)) return;
+    const start = ref.current;
+    const diff = target - start;
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + diff * eased);
+      setValue(current);
+      if (progress < 1) requestAnimationFrame(tick);
+      else ref.current = target;
+    }
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+
+  return value;
+}
+
+export function KpiCard({ label, value, icon: Icon, variant = "default", delay = 0 }: KpiCardProps) {
+  const isNumber = typeof value === "number" && !isNaN(value);
+  const animatedValue = useCountUp(isNumber ? value : 0);
+
   return (
-    <div className={cn("rounded-lg border bg-card p-5 animate-fade-in", variantStyles[variant])}>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-        <Icon className={cn("h-4 w-4", iconStyles[variant])} />
+    <div
+      className={cn(
+        "relative rounded-md border border-border bg-card p-4 card-glow overflow-hidden animate-fade-up"
+      )}
+      style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
+    >
+      {/* Bottom accent line */}
+      <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", borderColors[variant])} />
+
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{label}</p>
+        <Icon className={cn("h-3.5 w-3.5", iconColors[variant])} strokeWidth={1.5} />
       </div>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+      <p className="text-2xl font-semibold font-mono tabular-nums text-foreground tracking-tight">
+        {isNumber ? animatedValue : value}
+      </p>
     </div>
   );
 }

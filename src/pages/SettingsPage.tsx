@@ -29,61 +29,104 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-xl">
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Configure risk thresholds and window lengths</p>
+      {/* Comment block */}
+      <div className="animate-fade-up rounded-md border border-border bg-card p-4">
+        <pre className="text-[10px] text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap">
+{`/* These settings control how volatility quantiles
+   and window sizes are computed. In this demo they
+   are stored in the UI, but the design matches a
+   real admin panel backed by API endpoints. */`}
+        </pre>
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        These settings control how volatility quantiles and window sizes are computed.
-        In this demo they are stored in the UI, but the design matches a real admin panel that could call backend endpoints.
-      </p>
-
       {/* Risk thresholds */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-5 animate-fade-in">
-        <h2 className="text-sm font-medium text-foreground">Risk Thresholds</h2>
+      <SettingsSection title="Risk Thresholds" delay={50}>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Low / Medium split (quantile)</Label>
-            <Input value={lowMedQuantile} onChange={(e) => setLowMedQuantile(e.target.value)} className="font-mono bg-muted border-border" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Medium / High split (quantile)</Label>
-            <Input value={medHighQuantile} onChange={(e) => setMedHighQuantile(e.target.value)} className="font-mono bg-muted border-border" />
-          </div>
+          <SettingsInput label="Low / Medium split (quantile)" value={lowMedQuantile} onChange={setLowMedQuantile} />
+          <SettingsInput label="Medium / High split (quantile)" value={medHighQuantile} onChange={setMedHighQuantile} />
         </div>
-        <div className="pt-1">
-          <Button size="sm" onClick={handleSaveThresholds}>Save Thresholds</Button>
+        <div className="pt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveThresholds}
+            className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
+          >
+            Save Thresholds
+          </Button>
         </div>
+      </SettingsSection>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Window Config</span>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Window lengths */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-5 animate-fade-in">
-        <h2 className="text-sm font-medium text-foreground">Window Lengths</h2>
+      <SettingsSection title="Window Lengths" delay={100}>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Recent window (days)</Label>
-            <Input value={recentWindow} onChange={(e) => setRecentWindow(e.target.value)} className="font-mono bg-muted border-border" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Reference window (days)</Label>
-            <Input value={referenceWindow} onChange={(e) => setReferenceWindow(e.target.value)} className="font-mono bg-muted border-border" />
-          </div>
+          <SettingsInput label="Recent window (days)" value={recentWindow} onChange={setRecentWindow} />
+          <SettingsInput label="Reference window (days)" value={referenceWindow} onChange={setReferenceWindow} />
         </div>
-        <div className="pt-1">
-          <Button size="sm" onClick={handleSaveWindows}>Save Windows</Button>
+        <div className="pt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveWindows}
+            className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
+          >
+            Save Windows
+          </Button>
         </div>
+      </SettingsSection>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Manual</span>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Manual refresh */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4 animate-fade-in">
-        <h2 className="text-sm font-medium text-foreground">Manual Refresh</h2>
-        <p className="text-xs text-muted-foreground">Trigger a full data recomputation from the backend.</p>
-        <Button size="sm" variant="outline" onClick={handleRefresh} className="gap-2">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Trigger data refresh
+      <SettingsSection title="Manual Refresh" delay={150}>
+        <p className="text-[10px] text-muted-foreground font-mono">Trigger a full data recomputation from the backend.</p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleRefresh}
+          className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Trigger Refresh
         </Button>
-      </div>
+      </SettingsSection>
+    </div>
+  );
+}
+
+function SettingsSection({ title, delay = 0, children }: { title: string; delay?: number; children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-md border border-border bg-card p-5 space-y-4 animate-fade-up card-glow"
+      style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
+    >
+      <h2 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function SettingsInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] text-muted-foreground font-mono">{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="font-mono text-xs bg-background border-border focus:border-primary/50 h-8"
+      />
     </div>
   );
 }

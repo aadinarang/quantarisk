@@ -18,55 +18,75 @@ export default function DriftPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">Drift Overview</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Symbols exhibiting regime drift</p>
-      </div>
-
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <p className="text-sm text-muted-foreground">
-          Active drift symbols: <span className="font-mono font-medium text-foreground">{activeCount}</span> / <span className="font-mono">{totalCount}</span>
-        </p>
+      {/* Summary */}
+      <div className="flex items-center justify-between flex-wrap gap-4 animate-fade-up">
+        <div className="flex items-baseline gap-3">
+          <span className="text-3xl font-mono font-bold text-risk-high-text tabular-nums">{activeCount}</span>
+          <span className="text-xs text-muted-foreground font-mono">/ {totalCount} symbols drifting</span>
+        </div>
         <div className="flex items-center gap-2">
           <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
-          <Label htmlFor="show-all" className="text-xs text-muted-foreground cursor-pointer">Show all symbols</Label>
+          <Label htmlFor="show-all" className="text-[10px] text-muted-foreground cursor-pointer uppercase tracking-widest">
+            Show all
+          </Label>
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in">
+      {/* Table */}
+      <div className="rounded-md border border-border bg-card overflow-hidden animate-fade-up" style={{ animationDelay: "100ms", animationFillMode: "backwards" }}>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Symbol</th>
-              <th className="px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</th>
-              <th className="px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Drift Score</th>
-              <th className="px-5 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+              <th className="px-5 py-2.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Symbol</th>
+              <th className="px-5 py-2.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Name</th>
+              <th className="px-5 py-2.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Drift Score</th>
+              <th className="px-5 py-2.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Status</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={4} className="px-5 py-12 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={4} className="px-5 py-12 text-center text-muted-foreground font-mono text-xs">Loading…</td></tr>
             )}
             {!isLoading && displayed.length === 0 && (
-              <tr><td colSpan={4} className="px-5 py-12 text-center text-muted-foreground">No symbols with active drift</td></tr>
+              <tr><td colSpan={4} className="px-5 py-12 text-center text-muted-foreground font-mono text-xs">No active drift</td></tr>
             )}
             {displayed.map((d) => (
               <tr
                 key={d.symbol}
                 onClick={() => navigate(`/symbol/${d.symbol}`)}
                 className={cn(
-                  "border-b border-border cursor-pointer transition-colors hover:bg-accent/50",
-                  d.driftFlag && "risk-high-row"
+                  "border-b border-border cursor-pointer transition-all duration-150",
+                  "hover:bg-[hsl(153_100%_50%_/_0.03)]",
+                  d.driftFlag && "border-l-2 border-l-risk-high"
                 )}
               >
-                <td className={cn("px-5 py-3 font-mono text-foreground", d.driftFlag && "font-bold")}>{d.symbol}</td>
-                <td className="px-5 py-3 text-muted-foreground">{nameMap.get(d.symbol) ?? "—"}</td>
-                <td className="px-5 py-3 font-mono tabular-nums text-foreground">{d.driftScore.toFixed(3)}</td>
+                <td className={cn("px-5 py-3 font-mono text-xs text-foreground", d.driftFlag && "font-bold")}>{d.symbol}</td>
+                <td className="px-5 py-3 text-muted-foreground text-xs">{nameMap.get(d.symbol) ?? "—"}</td>
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono tabular-nums text-xs text-foreground">{d.driftScore.toFixed(3)}</span>
+                    <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(d.driftScore * 300, 100)}%`,
+                          backgroundColor: d.driftScore > 0.2 ? "hsl(345 100% 59%)" : d.driftScore > 0.05 ? "hsl(42 100% 50%)" : "hsl(153 100% 50%)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </td>
                 <td className="px-5 py-3">
                   {d.driftFlag ? (
-                    <span className="text-risk-high-text text-xs font-semibold">Drifting</span>
+                    <span className="inline-flex items-center gap-1.5 text-risk-high-text text-[10px] font-semibold uppercase tracking-wider">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-risk-high opacity-50" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-risk-high" />
+                      </span>
+                      Drifting
+                    </span>
                   ) : (
-                    <span className="text-muted-foreground text-xs">Stable</span>
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Stable</span>
                   )}
                 </td>
               </tr>
