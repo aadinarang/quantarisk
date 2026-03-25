@@ -15,3 +15,9 @@ export const useRiskHistory = (symbol: string) =>
 
 export const useDriftSummary = () =>
   useQuery({ queryKey: ["drift-summary"], queryFn: api.getDriftSummary, retry: 1 });
+
+export const useSymbolRatios = (symbol: string) =>
+  useQuery({ queryKey: ["symbol-ratios", symbol], queryFn: () => api.getSymbolRatios(symbol), enabled: !!symbol, retry: 1 });
+
+export const useSearchSymbols = (query: string) =>
+  useQuery({ queryKey: ["search-symbols", query], queryFn: () => api.searchSymbols(query), enabled: query.length >= 1, retry: 1 });

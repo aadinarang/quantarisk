@@ -1,19 +1,27 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, AlertTriangle, Settings, Activity } from "lucide-react";
+import { BarChart3, AlertTriangle, Settings, Activity, Eye, User, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useRiskOverview } from "@/hooks/use-risk-data";
+import { SearchBar } from "@/components/SearchBar";
+import { Footer } from "@/components/Footer";
 
 const links = [
   { to: "/", label: "Dashboard", icon: BarChart3 },
+  { to: "/watchlist", label: "Watchlist", icon: Eye },
   { to: "/drift", label: "Drift Overview", icon: AlertTriangle },
+  { to: "/about", label: "About", icon: Info },
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/account", label: "Account", icon: User },
 ];
 
-const pageMeta: Record<string, { title: string; subtitle: string }> = {
-  "/": { title: "Dashboard", subtitle: "Market risk overview at a glance" },
-  "/drift": { title: "Drift Overview", subtitle: "Symbols exhibiting regime drift" },
-  "/settings": { title: "Settings", subtitle: "Configure risk thresholds and window lengths" },
+const pageMeta: Record<string, { title: string }> = {
+  "/": { title: "Dashboard" },
+  "/watchlist": { title: "Watchlist" },
+  "/drift": { title: "Drift Overview" },
+  "/settings": { title: "Settings" },
+  "/account": { title: "Account" },
+  "/about": { title: "About" },
 };
 
 export function AppShell() {
@@ -23,7 +31,7 @@ export function AppShell() {
   const basePath = "/" + (location.pathname.split("/")[1] || "");
   const isSymbolDetail = location.pathname.startsWith("/symbol/");
   const meta = isSymbolDetail
-    ? { title: "Symbol Detail", subtitle: "In-depth risk analysis" }
+    ? { title: "Symbol Detail" }
     : pageMeta[basePath] ?? pageMeta["/"];
 
   const lastUpdated = overview?.lastUpdated
@@ -31,9 +39,9 @@ export function AppShell() {
     : null;
 
   return (
-    <div className="flex min-h-screen bg-grid">
-      {/* Slim icon sidebar */}
-      <aside className="w-14 shrink-0 border-r border-border bg-sidebar flex flex-col items-center">
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="w-14 shrink-0 border-r border-border bg-card flex flex-col items-center">
         <div className="py-4">
           <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
             <Activity className="h-4 w-4 text-primary" />
@@ -51,7 +59,7 @@ export function AppShell() {
                       "relative w-10 h-10 flex items-center justify-center rounded-md transition-colors",
                       isActive
                         ? "text-primary bg-primary/10"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     )
                   }
                 >
@@ -71,21 +79,15 @@ export function AppShell() {
             </Tooltip>
           ))}
         </nav>
-        <div className="pb-4">
-          <span className="text-[8px] font-mono text-muted-foreground/50 writing-mode-vertical" style={{ writingMode: "vertical-rl" }}>
-            v1.0
-          </span>
-        </div>
       </aside>
 
-      {/* Main content */}
+      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-12 shrink-0 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
-          <div>
-            <h1 className="text-sm font-medium text-foreground">{meta.title}</h1>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+        <header className="h-12 shrink-0 border-b border-border bg-card/50 flex items-center justify-between px-6 gap-4">
+          <h1 className="text-sm font-medium text-foreground shrink-0">{meta.title}</h1>
+          <SearchBar />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono shrink-0">
             {lastUpdated && (
               <>
                 <span className="relative flex h-2 w-2">
@@ -101,6 +103,8 @@ export function AppShell() {
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
+
+        <Footer />
       </div>
     </div>
   );

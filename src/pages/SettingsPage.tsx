@@ -14,119 +14,63 @@ export default function SettingsPage() {
   const [recentWindow, setRecentWindow] = useState("30");
   const [referenceWindow, setReferenceWindow] = useState("180");
 
-  const handleSaveThresholds = () => {
-    toast({ title: "Thresholds saved (mock)", description: `Low/Med: ${lowMedQuantile}, Med/High: ${medHighQuantile}` });
-  };
-
-  const handleSaveWindows = () => {
-    toast({ title: "Windows saved (mock)", description: `Recent: ${recentWindow}d, Reference: ${referenceWindow}d` });
-  };
-
-  const handleRefresh = () => {
-    queryClient.invalidateQueries();
-    toast({ title: "Triggered data refresh (demo)", description: "All dashboard queries have been re-fetched." });
-  };
-
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-xl">
-      {/* Comment block */}
-      <div className="animate-fade-up rounded-md border border-border bg-card p-4">
-        <pre className="text-[10px] text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap">
-{`/* These settings control how volatility quantiles
-   and window sizes are computed. In this demo they
-   are stored in the UI, but the design matches a
-   real admin panel backed by API endpoints. */`}
-        </pre>
-      </div>
+    <div className="p-6 lg:p-8 space-y-5 max-w-xl">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        These settings control how volatility quantiles and window sizes are computed. 
+        In this demo they are stored in the UI, but the design matches a real admin panel backed by API endpoints.
+      </p>
 
       {/* Risk thresholds */}
-      <SettingsSection title="Risk Thresholds" delay={50}>
+      <section className="rounded-md border border-border bg-card p-5 space-y-4">
+        <h2 className="text-xs font-medium text-muted-foreground">Risk Thresholds</h2>
         <div className="grid grid-cols-2 gap-4">
-          <SettingsInput label="Low / Medium split (quantile)" value={lowMedQuantile} onChange={setLowMedQuantile} />
-          <SettingsInput label="Medium / High split (quantile)" value={medHighQuantile} onChange={setMedHighQuantile} />
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Low / Medium split</Label>
+            <Input value={lowMedQuantile} onChange={(e) => setLowMedQuantile(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Medium / High split</Label>
+            <Input value={medHighQuantile} onChange={(e) => setMedHighQuantile(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
+          </div>
         </div>
-        <div className="pt-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSaveThresholds}
-            className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
-          >
-            Save Thresholds
-          </Button>
-        </div>
-      </SettingsSection>
-
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Window Config</span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
+        <Button size="sm" variant="outline" onClick={() => toast({ title: "Thresholds saved (mock)" })} className="text-xs">
+          Save Thresholds
+        </Button>
+      </section>
 
       {/* Window lengths */}
-      <SettingsSection title="Window Lengths" delay={100}>
+      <section className="rounded-md border border-border bg-card p-5 space-y-4">
+        <h2 className="text-xs font-medium text-muted-foreground">Window Lengths</h2>
         <div className="grid grid-cols-2 gap-4">
-          <SettingsInput label="Recent window (days)" value={recentWindow} onChange={setRecentWindow} />
-          <SettingsInput label="Reference window (days)" value={referenceWindow} onChange={setReferenceWindow} />
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Recent window (days)</Label>
+            <Input value={recentWindow} onChange={(e) => setRecentWindow(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Reference window (days)</Label>
+            <Input value={referenceWindow} onChange={(e) => setReferenceWindow(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
+          </div>
         </div>
-        <div className="pt-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSaveWindows}
-            className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
-          >
-            Save Windows
-          </Button>
-        </div>
-      </SettingsSection>
-
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Manual</span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
+        <Button size="sm" variant="outline" onClick={() => toast({ title: "Windows saved (mock)" })} className="text-xs">
+          Save Windows
+        </Button>
+      </section>
 
       {/* Manual refresh */}
-      <SettingsSection title="Manual Refresh" delay={150}>
-        <p className="text-[10px] text-muted-foreground font-mono">Trigger a full data recomputation from the backend.</p>
+      <section className="rounded-md border border-border bg-card p-5 space-y-3">
+        <h2 className="text-xs font-medium text-muted-foreground">Manual Refresh</h2>
+        <p className="text-xs text-muted-foreground">Trigger a full data recomputation from the backend.</p>
         <Button
           size="sm"
           variant="outline"
-          onClick={handleRefresh}
-          className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-mono text-[10px] uppercase tracking-widest"
+          onClick={() => { queryClient.invalidateQueries(); toast({ title: "Data refresh triggered" }); }}
+          className="gap-1.5 text-xs"
         >
           <RefreshCw className="h-3 w-3" />
           Trigger Refresh
         </Button>
-      </SettingsSection>
-    </div>
-  );
-}
-
-function SettingsSection({ title, delay = 0, children }: { title: string; delay?: number; children: React.ReactNode }) {
-  return (
-    <div
-      className="rounded-md border border-border bg-card p-5 space-y-4 animate-fade-up card-glow"
-      style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
-    >
-      <h2 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-function SettingsInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-[10px] text-muted-foreground font-mono">{label}</Label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="font-mono text-xs bg-background border-border focus:border-primary/50 h-8"
-      />
+      </section>
     </div>
   );
 }
