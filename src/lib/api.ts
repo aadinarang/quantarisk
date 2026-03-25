@@ -4,6 +4,12 @@ import { mockApi } from "./mock-data";
 export interface SymbolInfo {
   symbol: string;
   name: string;
+  sector: string;
+  exchange: string;
+  marketCap: string;
+  price: number;
+  change: number;
+  changePercent: number;
 }
 
 export interface RiskOverview {
@@ -41,8 +47,25 @@ export interface DriftSummaryItem {
   driftScore: number;
 }
 
+export interface SymbolRatios {
+  pe: number;
+  eps: number;
+  pb: number;
+  ps: number;
+  debtToEquity: number;
+  currentRatio: number;
+  roe: number;
+  roa: number;
+  grossMargin: number;
+  operatingMargin: number;
+  netMargin: number;
+  dividendYield: number;
+  beta: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+}
+
 // ── Config ─────────────────────────────────────────────
-// Set to false to use the real FastAPI backend via /api/...
 const USE_MOCK = true;
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -58,6 +81,8 @@ const liveApi = {
   getRiskSnapshot: (symbol: string) => fetchJson<SymbolSnapshot>(`/risk/snapshot?symbol=${symbol}`),
   getRiskHistory: (symbol: string) => fetchJson<SymbolHistory>(`/risk/history?symbol=${symbol}`),
   getDriftSummary: () => fetchJson<DriftSummaryItem[]>("/drift/summary"),
+  getSymbolRatios: (symbol: string) => fetchJson<SymbolRatios>(`/ratios?symbol=${symbol}`),
+  searchSymbols: (query: string) => fetchJson<SymbolInfo[]>(`/symbols/search?q=${query}`),
 };
 
 export const api = USE_MOCK ? mockApi : liveApi;

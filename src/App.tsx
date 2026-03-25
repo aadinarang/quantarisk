@@ -8,6 +8,10 @@ import DashboardPage from "@/pages/DashboardPage";
 import SymbolDetailPage from "@/pages/SymbolDetailPage";
 import DriftPage from "@/pages/DriftPage";
 import SettingsPage from "@/pages/SettingsPage";
+import LoginPage from "@/pages/LoginPage";
+import AboutPage from "@/pages/AboutPage";
+import WatchlistPage from "@/pages/WatchlistPage";
+import AccountPage from "@/pages/AccountPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,11 +23,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/symbol/:symbol" element={<SymbolDetailPage />} />
             <Route path="/drift" element={<DriftPage />} />
+            <Route path="/watchlist" element={<WatchlistPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/account" element={<AccountPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

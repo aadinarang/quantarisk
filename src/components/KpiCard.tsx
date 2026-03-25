@@ -10,7 +10,7 @@ interface KpiCardProps {
   delay?: number;
 }
 
-const borderColors = {
+const accentColors = {
   default: "bg-muted-foreground/20",
   high: "bg-risk-high",
   medium: "bg-risk-medium",
@@ -24,7 +24,7 @@ const iconColors = {
   low: "text-risk-low-text",
 };
 
-function useCountUp(target: number, duration = 800) {
+function useCountUp(target: number, duration = 600) {
   const [value, setValue] = useState(0);
   const ref = useRef<number>(0);
 
@@ -55,19 +55,15 @@ export function KpiCard({ label, value, icon: Icon, variant = "default", delay =
 
   return (
     <div
-      className={cn(
-        "relative rounded-md border border-border bg-card p-4 card-glow overflow-hidden animate-fade-up"
-      )}
+      className="relative rounded-md border border-border bg-card p-4 overflow-hidden animate-fade-up"
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
-      {/* Bottom accent line */}
-      <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", borderColors[variant])} />
-
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{label}</p>
+      <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", accentColors[variant])} />
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-xs text-muted-foreground">{label}</p>
         <Icon className={cn("h-3.5 w-3.5", iconColors[variant])} strokeWidth={1.5} />
       </div>
-      <p className="text-2xl font-semibold font-mono tabular-nums text-foreground tracking-tight">
+      <p className="text-xl font-semibold font-mono tabular-nums text-foreground">
         {isNumber ? animatedValue : value}
       </p>
     </div>
