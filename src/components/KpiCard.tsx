@@ -24,6 +24,13 @@ const iconColors = {
   low: "text-risk-low-text",
 };
 
+const bgTints = {
+  default: "",
+  high: "hover:border-risk-high/20",
+  medium: "hover:border-risk-medium/20",
+  low: "hover:border-risk-low/20",
+};
+
 function useCountUp(target: number, duration = 600) {
   const [value, setValue] = useState(0);
   const ref = useRef<number>(0);
@@ -55,15 +62,30 @@ export function KpiCard({ label, value, icon: Icon, variant = "default", delay =
 
   return (
     <div
-      className="relative rounded-md border border-border bg-card p-4 overflow-hidden animate-fade-up"
+      className={cn(
+        "group relative rounded-md border border-border bg-card p-4 overflow-hidden animate-fade-up card-shine transition-colors duration-200",
+        bgTints[variant]
+      )}
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
+      {/* Bottom accent line */}
       <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", accentColors[variant])} />
-      <div className="flex items-start justify-between mb-2">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <Icon className={cn("h-3.5 w-3.5", iconColors[variant])} strokeWidth={1.5} />
+      
+      {/* Ambient glow on hover for colored variants */}
+      {variant !== "default" && (
+        <div className={cn(
+          "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none",
+          variant === "high" && "bg-risk-high/[0.02]",
+          variant === "medium" && "bg-risk-medium/[0.02]",
+          variant === "low" && "bg-risk-low/[0.02]",
+        )} />
+      )}
+
+      <div className="relative flex items-start justify-between mb-2">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <Icon className={cn("h-3.5 w-3.5 opacity-40 group-hover:opacity-70 transition-opacity", iconColors[variant])} strokeWidth={1.5} />
       </div>
-      <p className="text-xl font-semibold font-mono tabular-nums text-foreground">
+      <p className="relative text-2xl font-semibold font-mono tabular-nums text-foreground">
         {isNumber ? animatedValue : value}
       </p>
     </div>

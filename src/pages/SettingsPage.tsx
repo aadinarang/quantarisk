@@ -16,21 +16,20 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-5 max-w-xl">
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        These settings control how volatility quantiles and window sizes are computed. 
-        In this demo they are stored in the UI, but the design matches a real admin panel backed by API endpoints.
+      <p className="text-[10px] text-muted-foreground/50 leading-relaxed font-mono">
+        /* Configuration for volatility quantiles and window sizes. Demo-only — in production these would persist via API. */
       </p>
 
       {/* Risk thresholds */}
       <section className="rounded-md border border-border bg-card p-5 space-y-4">
-        <h2 className="text-xs font-medium text-muted-foreground">Risk Thresholds</h2>
+        <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Risk Thresholds</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Low / Medium split</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Low / Medium split</Label>
             <Input value={lowMedQuantile} onChange={(e) => setLowMedQuantile(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Medium / High split</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Medium / High split</Label>
             <Input value={medHighQuantile} onChange={(e) => setMedHighQuantile(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
           </div>
         </div>
@@ -41,14 +40,14 @@ export default function SettingsPage() {
 
       {/* Window lengths */}
       <section className="rounded-md border border-border bg-card p-5 space-y-4">
-        <h2 className="text-xs font-medium text-muted-foreground">Window Lengths</h2>
+        <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Window Lengths</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Recent window (days)</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Recent window (days)</Label>
             <Input value={recentWindow} onChange={(e) => setRecentWindow(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Reference window (days)</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Reference window (days)</Label>
             <Input value={referenceWindow} onChange={(e) => setReferenceWindow(e.target.value)} className="bg-secondary border-border text-sm font-mono h-8" />
           </div>
         </div>
@@ -59,7 +58,7 @@ export default function SettingsPage() {
 
       {/* Manual refresh */}
       <section className="rounded-md border border-border bg-card p-5 space-y-3">
-        <h2 className="text-xs font-medium text-muted-foreground">Manual Refresh</h2>
+        <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Manual Refresh</h2>
         <p className="text-xs text-muted-foreground">Trigger a full data recomputation from the backend.</p>
         <Button
           size="sm"

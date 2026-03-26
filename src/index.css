@@ -73,3 +73,43 @@
     font-family: 'JetBrains Mono', monospace;
   }
 }
+
+@layer utilities {
+  /* Sidebar active icon glow */
+  .nav-icon-active {
+    filter: drop-shadow(0 0 6px hsl(153 100% 50% / 0.5)) drop-shadow(0 0 12px hsl(153 100% 50% / 0.2));
+  }
+
+  /* Subtle card shine on hover */
+  .card-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 40%,
+      hsl(153 100% 50% / 0.02) 50%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .card-shine:hover::before {
+    opacity: 1;
+  }
+
+  /* Risk badge subtle glow */
+  .badge-glow-high {
+    box-shadow: 0 0 8px hsl(345 100% 59% / 0.15), inset 0 0 4px hsl(345 100% 59% / 0.05);
+  }
+  .badge-glow-medium {
+    box-shadow: 0 0 8px hsl(42 100% 50% / 0.15), inset 0 0 4px hsl(42 100% 50% / 0.05);
+  }
+  .badge-glow-low {
+    box-shadow: 0 0 8px hsl(153 100% 50% / 0.15), inset 0 0 4px hsl(153 100% 50% / 0.05);
+  }
+}

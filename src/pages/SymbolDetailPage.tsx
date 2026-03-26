@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Star, StarOff } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Star, StarOff, ChevronRight } from "lucide-react";
 import { useRiskSnapshot, useRiskHistory, useSymbolRatios, useSymbols } from "@/hooks/use-risk-data";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -22,22 +22,21 @@ export default function SymbolDetailPage() {
   return (
     <div className="p-6 lg:p-8 space-y-5">
       {/* Breadcrumb */}
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-3 w-3" /> Dashboard / {symbol}
-      </Link>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Link to="/" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground font-mono">{symbol}</span>
+      </div>
 
       {/* Drift alert banner */}
       {snap?.driftFlag && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-center gap-3">
-          <span className="relative flex h-2.5 w-2.5">
+        <div className="rounded-md border border-destructive/20 bg-destructive/[0.04] px-4 py-3 flex items-center gap-3 animate-fade-in">
+          <span className="relative flex h-2 w-2">
             <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-destructive opacity-50" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
           </span>
           <AlertTriangle className="h-3.5 w-3.5 text-destructive" strokeWidth={1.5} />
-          <span className="text-xs font-medium text-destructive font-mono">
+          <span className="text-xs text-risk-high-text font-mono">
             VOLATILITY REGIME SHIFT DETECTED · score {snap.driftScore.toFixed(3)}
           </span>
         </div>
@@ -50,23 +49,23 @@ export default function SymbolDetailPage() {
         {snap && <RiskBadge level={snap.currentRisk} />}
         <Button
           size="sm"
-          variant="ghost"
+          variant="outline"
           onClick={() => inWatchlist ? removeSymbol(symbol) : addSymbol(symbol)}
-          className="ml-auto gap-1.5 text-xs text-muted-foreground"
+          className="ml-auto gap-1.5 text-xs"
         >
           {inWatchlist ? <StarOff className="h-3.5 w-3.5" /> : <Star className="h-3.5 w-3.5" />}
-          {inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+          {inWatchlist ? "Remove" : "Watch"}
         </Button>
       </div>
 
       {/* Price info */}
       {info && (
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-baseline gap-4">
           <span className="font-mono text-lg text-foreground">${info.price.toFixed(2)}</span>
           <span className={`font-mono text-sm ${info.change >= 0 ? "text-risk-low-text" : "text-risk-high-text"}`}>
             {info.change >= 0 ? "+" : ""}{info.change.toFixed(2)} ({info.changePercent >= 0 ? "+" : ""}{info.changePercent.toFixed(2)}%)
           </span>
-          <span className="text-xs text-muted-foreground">{info.exchange} · {info.sector}</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{info.exchange} · {info.sector}</span>
         </div>
       )}
 
@@ -75,18 +74,18 @@ export default function SymbolDetailPage() {
       ) : snap ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Chart */}
-          <div className="lg:col-span-2 rounded-md border border-border bg-card p-5">
-            <h3 className="text-xs font-medium text-muted-foreground mb-4">Volatility History</h3>
+          <div className="lg:col-span-2 rounded-md border border-border bg-card p-5 card-shine">
+            <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-4">Volatility History</h3>
             {history?.points ? (
               <VolatilityChart points={history.points} height={360} />
             ) : (
-              <p className="text-xs text-muted-foreground py-12 text-center font-mono">Loading history…</p>
+              <p className="text-xs text-muted-foreground py-12 text-center font-mono">Loading…</p>
             )}
           </div>
 
           {/* Info card */}
           <div className="rounded-md border border-border bg-card p-5 space-y-3">
-            <h3 className="text-xs font-medium text-muted-foreground mb-2">Overview</h3>
+            <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Overview</h3>
             <DataRow label="Current Volatility" value={snap.currentVolatility.toFixed(4)} />
             <DataRow label="Risk Level" value={snap.currentRisk} />
             <DataRow
@@ -95,7 +94,7 @@ export default function SymbolDetailPage() {
               highlight={snap.driftFlag}
             />
             <div className="pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
                 Drift is computed by comparing recent and reference volatility distributions.
                 A flag indicates the asset has moved into a different volatility regime.
               </p>
@@ -106,9 +105,9 @@ export default function SymbolDetailPage() {
 
       {/* Financial Ratios */}
       {ratios && (
-        <div className="rounded-md border border-border bg-card p-5 space-y-4">
-          <h3 className="text-xs font-medium text-muted-foreground">Financial Ratios</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3">
+        <div className="rounded-md border border-border bg-card p-5 space-y-4 card-shine">
+          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Financial Ratios</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4">
             <RatioItem label="P/E Ratio" value={ratios.pe.toFixed(1)} />
             <RatioItem label="EPS" value={`$${ratios.eps.toFixed(2)}`} />
             <RatioItem label="P/B Ratio" value={ratios.pb.toFixed(1)} />
@@ -122,7 +121,7 @@ export default function SymbolDetailPage() {
             <RatioItem label="Net Margin" value={`${(ratios.netMargin * 100).toFixed(1)}%`} />
             <RatioItem label="Div. Yield" value={`${(ratios.dividendYield * 100).toFixed(2)}%`} />
             <RatioItem label="Beta" value={ratios.beta.toFixed(2)} />
-            <RatioItem label="Sharpe Ratio" value={ratios.sharpeRatio.toFixed(2)} />
+            <RatioItem label="Sharpe" value={ratios.sharpeRatio.toFixed(2)} />
             <RatioItem label="Max Drawdown" value={`${(ratios.maxDrawdown * 100).toFixed(1)}%`} />
           </div>
         </div>
@@ -146,8 +145,8 @@ function DataRow({ label, value, highlight }: { label: string; value: string; hi
 function RatioItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-mono font-medium text-foreground tabular-nums">{value}</p>
+      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-mono font-medium text-foreground tabular-nums mt-0.5">{value}</p>
     </div>
   );
 }
