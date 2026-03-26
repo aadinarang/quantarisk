@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layers, AlertTriangle, ShieldAlert, ShieldCheck, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { useSymbols, useRiskOverview, useRiskSnapshot, useRiskHistory, useDriftSummary } from "@/hooks/use-risk-data";
@@ -7,6 +7,19 @@ import { RiskBadge } from "@/components/RiskBadge";
 import { VolatilityChart } from "@/components/VolatilityChart";
 import { cn } from "@/lib/utils";
 import type { DriftSummaryItem } from "@/lib/api";
+
+// Generate fake sparkline data for KPI tiles
+function useFakeSparkline(seed: number, count = 12) {
+  return useMemo(() => {
+    const data: number[] = [];
+    let v = seed;
+    for (let i = 0; i < count; i++) {
+      v += (Math.sin(seed * 7 + i * 1.3) * 2) + (Math.cos(i * 0.8) * 1.5);
+      data.push(Math.max(0, Math.round(v)));
+    }
+    return data;
+  }, [seed, count]);
+}
 
 export default function DashboardPage() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
@@ -26,14 +39,19 @@ export default function DashboardPage() {
 
   const driftingCount = driftSummary?.filter(d => d.driftFlag).length ?? 0;
 
+  const sparkTotal = useFakeSparkline(overview?.totalSymbols ?? 10);
+  const sparkHigh = useFakeSparkline(overview?.highRiskCount ?? 3);
+  const sparkMedium = useFakeSparkline(overview?.mediumRiskCount ?? 4);
+  const sparkLow = useFakeSparkline(overview?.lowRiskCount ?? 5);
+
   return (
     <div className="p-6 lg:p-8 space-y-5">
       {/* KPI tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="Total Symbols" value={overview?.totalSymbols ?? "—"} icon={Layers} delay={0} />
-        <KpiCard label="High Risk" value={overview?.highRiskCount ?? "—"} icon={ShieldAlert} variant="high" delay={50} />
-        <KpiCard label="Medium Risk" value={overview?.mediumRiskCount ?? "—"} icon={AlertTriangle} variant="medium" delay={100} />
-        <KpiCard label="Low Risk" value={overview?.lowRiskCount ?? "—"} icon={ShieldCheck} variant="low" delay={150} />
+        <KpiCard label="Total Symbols" value={overview?.totalSymbols ?? "—"} icon={Layers} delay={0} sparkData={sparkTotal} />
+        <KpiCard label="High Risk" value={overview?.highRiskCount ?? "—"} icon={ShieldAlert} variant="high" delay={50} sparkData={sparkHigh} />
+        <KpiCard label="Medium Risk" value={overview?.mediumRiskCount ?? "—"} icon={AlertTriangle} variant="medium" delay={100} sparkData={sparkMedium} />
+        <KpiCard label="Low Risk" value={overview?.lowRiskCount ?? "—"} icon={ShieldCheck} variant="low" delay={150} sparkData={sparkLow} />
         <KpiCard
           label="Last Updated"
           value={overview?.lastUpdated ? new Date(overview.lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
@@ -71,7 +89,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Volatility chart - side panel on xl */}
+        {/* Volatility chart */}
         {selectedSymbol && (
           <div className="rounded-md border border-border bg-card p-5 card-shine">
             <div className="flex items-center justify-between mb-1">
@@ -96,10 +114,7 @@ export default function DashboardPage() {
 }
 
 function SymbolTable({
-  symbols,
-  selectedSymbol,
-  onSelect,
-  driftMap,
+  symbols, selectedSymbol, onSelect, driftMap,
 }: {
   symbols: { symbol: string; name: string; price: number; change: number; changePercent: number }[];
   selectedSymbol: string;
@@ -140,9 +155,7 @@ function SymbolTable({
           ))}
           {symbols.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-xs">
-                No symbols available
-              </td>
+              <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground text-xs">No symbols available</td>
             </tr>
           )}
         </tbody>
@@ -169,7 +182,6 @@ function SymbolRow({
         "hover:bg-primary/[0.02]",
         isSelected && "border-l-2 border-l-primary bg-primary/[0.04]"
       )}
-      style={{ animationDelay: `${index * 20}ms` }}
     >
       <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">{symbol}</td>
       <td className="px-4 py-3 text-muted-foreground text-xs">{name}</td>

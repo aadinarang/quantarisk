@@ -2,13 +2,16 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
+import { RefreshCw, Sun, Moon } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { theme, toggle } = useTheme();
   const [lowMedQuantile, setLowMedQuantile] = useState("0.50");
   const [medHighQuantile, setMedHighQuantile] = useState("0.80");
   const [recentWindow, setRecentWindow] = useState("30");
@@ -19,6 +22,19 @@ export default function SettingsPage() {
       <p className="text-[10px] text-muted-foreground/50 leading-relaxed font-mono">
         /* Configuration for volatility quantiles and window sizes. Demo-only — in production these would persist via API. */
       </p>
+
+      {/* Appearance */}
+      <section className="rounded-md border border-border bg-card p-5 space-y-4">
+        <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Appearance</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {theme === "dark" ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+            <span className="text-xs text-foreground">{theme === "dark" ? "Dark mode" : "Light mode"}</span>
+          </div>
+          <Switch checked={theme === "light"} onCheckedChange={toggle} />
+        </div>
+        <p className="text-[10px] text-muted-foreground/50">Toggle between dark and light interface themes.</p>
+      </section>
 
       {/* Risk thresholds */}
       <section className="rounded-md border border-border bg-card p-5 space-y-4">
