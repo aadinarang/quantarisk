@@ -59,6 +59,59 @@
     --sidebar-border: 216 20% 10%;
     --sidebar-ring: 153 100% 50%;
   }
+
+  .light {
+    --background: 210 20% 98%;
+    --foreground: 216 30% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 216 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 30% 12%;
+
+    --primary: 153 80% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 214 15% 93%;
+    --secondary-foreground: 216 20% 40%;
+
+    --muted: 214 15% 95%;
+    --muted-foreground: 217 10% 55%;
+
+    --accent: 214 15% 91%;
+    --accent-foreground: 216 30% 12%;
+
+    --destructive: 345 85% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 15% 88%;
+    --input: 214 15% 88%;
+    --ring: 153 80% 36%;
+
+    --risk-high: 345 85% 50%;
+    --risk-high-muted: 345 50% 95%;
+    --risk-medium: 42 90% 45%;
+    --risk-medium-muted: 42 50% 95%;
+    --risk-low: 153 80% 36%;
+    --risk-low-muted: 153 40% 94%;
+
+    --risk-high-text: 345 85% 42%;
+    --risk-medium-text: 42 85% 38%;
+    --risk-low-text: 153 80% 30%;
+
+    --chart-line: 153 80% 36%;
+    --chart-grid: 214 15% 90%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 217 10% 55%;
+    --sidebar-primary: 153 80% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 15% 95%;
+    --sidebar-accent-foreground: 216 30% 12%;
+    --sidebar-border: 214 15% 90%;
+    --sidebar-ring: 153 80% 36%;
+  }
 }
 
 @layer base {
@@ -77,7 +130,7 @@
 @layer utilities {
   /* Sidebar active icon glow */
   .nav-icon-active {
-    filter: drop-shadow(0 0 6px hsl(153 100% 50% / 0.5)) drop-shadow(0 0 12px hsl(153 100% 50% / 0.2));
+    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.6)) drop-shadow(0 0 14px hsl(var(--primary) / 0.3));
   }
 
   /* Subtle card shine on hover */
@@ -92,7 +145,7 @@
     background: linear-gradient(
       135deg,
       transparent 40%,
-      hsl(153 100% 50% / 0.02) 50%,
+      hsl(var(--primary) / 0.02) 50%,
       transparent 60%
     );
     opacity: 0;
@@ -104,12 +157,12 @@
 
   /* Risk badge subtle glow */
   .badge-glow-high {
-    box-shadow: 0 0 8px hsl(345 100% 59% / 0.15), inset 0 0 4px hsl(345 100% 59% / 0.05);
+    box-shadow: 0 0 8px hsl(var(--risk-high) / 0.15), inset 0 0 4px hsl(var(--risk-high) / 0.05);
   }
   .badge-glow-medium {
-    box-shadow: 0 0 8px hsl(42 100% 50% / 0.15), inset 0 0 4px hsl(42 100% 50% / 0.05);
+    box-shadow: 0 0 8px hsl(var(--risk-medium) / 0.15), inset 0 0 4px hsl(var(--risk-medium) / 0.05);
   }
   .badge-glow-low {
-    box-shadow: 0 0 8px hsl(153 100% 50% / 0.15), inset 0 0 4px hsl(153 100% 50% / 0.05);
+    box-shadow: 0 0 8px hsl(var(--risk-low) / 0.15), inset 0 0 4px hsl(var(--risk-low) / 0.05);
   }
 }

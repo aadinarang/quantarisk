@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, AlertTriangle, Settings, Activity, Eye, User, Info } from "lucide-react";
+import { BarChart3, AlertTriangle, Settings, Activity, Eye, User, Info, Sun, Moon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useRiskOverview } from "@/hooks/use-risk-data";
+import { useTheme } from "@/hooks/use-theme";
 import { SearchBar } from "@/components/SearchBar";
 import { Footer } from "@/components/Footer";
 
@@ -27,6 +28,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
 export function AppShell() {
   const location = useLocation();
   const { data: overview } = useRiskOverview();
+  const { theme, toggle } = useTheme();
 
   const basePath = "/" + (location.pathname.split("/")[1] || "");
   const isSymbolDetail = location.pathname.startsWith("/symbol/");
@@ -66,14 +68,19 @@ export function AppShell() {
                   {({ isActive }) => (
                     <>
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-primary rounded-r-full shadow-[0_0_8px_hsl(153_100%_50%/0.6)]" />
+                        <>
+                          {/* Active left bar with glow */}
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full shadow-[0_0_10px_2px_hsl(var(--primary)/0.5)]" />
+                          {/* Background glow */}
+                          <span className="absolute inset-0 rounded-md bg-primary/[0.06] shadow-[inset_0_0_12px_hsl(var(--primary)/0.08)]" />
+                        </>
                       )}
                       <Icon
                         className={cn(
-                          "h-[18px] w-[18px] transition-all duration-200",
+                          "relative h-[18px] w-[18px] transition-all duration-200",
                           isActive && "nav-icon-active"
                         )}
-                        strokeWidth={1.5}
+                        strokeWidth={isActive ? 2 : 1.5}
                       />
                     </>
                   )}
@@ -86,7 +93,21 @@ export function AppShell() {
           ))}
         </nav>
 
-        {/* Sidebar bottom accent line */}
+        {/* Theme toggle */}
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggle}
+              className="w-10 h-10 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors mb-2"
+            >
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" strokeWidth={1.5} /> : <Moon className="h-[18px] w-[18px]" strokeWidth={1.5} />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="bg-popover border-border text-xs">
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </TooltipContent>
+        </Tooltip>
+
         <div className="w-6 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-4" />
       </aside>
 
