@@ -72,7 +72,7 @@ export function AppShell() {
                           {/* Active left bar with glow */}
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full shadow-[0_0_10px_2px_hsl(var(--primary)/0.5)]" />
                           {/* Background glow */}
-                          <span className="absolute inset-0 rounded-md bg-primary/[0.06] shadow-[inset_0_0_12px_hsl(var(--primary)/0.08)]" />
+                          <span className="pointer-events-none absolute inset-0 rounded-md bg-primary/[0.06] shadow-[inset_0_0_12px_hsl(var(--primary)/0.08)]" />
                         </>
                       )}
                       <Icon
