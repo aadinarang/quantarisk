@@ -89,7 +89,7 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
       </td>
       <td className="px-4 py-3 text-right">
         {snap?.driftFlag ? (
-          <span className="text-risk-high-text text-xs font-mono">{snap.driftScore.toFixed(3)}</span>
+          <span className="text-risk-high-text text-xs font-mono">{typeof snap?.driftScore === "number" ? snap.driftScore.toFixed(3) : "—"}</span>
         ) : (
           <span className="text-muted-foreground text-xs">â€”</span>
         )}
@@ -105,3 +105,4 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
     </tr>
   );
 }
+

@@ -185,18 +185,20 @@ function SymbolRow({
     >
       <td className="px-4 py-3 font-mono font-medium text-foreground text-xs">{symbol}</td>
       <td className="px-4 py-3 text-muted-foreground text-xs">{name}</td>
-      <td className="px-4 py-3 font-mono tabular-nums text-right text-xs text-foreground">${price.toFixed(2)}</td>
+            <td className="px-4 py-3 font-mono tabular-nums text-right text-xs text-foreground">
+        {typeof price === "number" ? `$${price.toFixed(2)}` : "—"}
+      </td>
       <td className="px-4 py-3 text-right">
         <span className={cn("inline-flex items-center gap-1 font-mono tabular-nums text-xs", isPositive ? "text-risk-low-text" : "text-risk-high-text")}>
           {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {isPositive ? "+" : ""}{changePercent.toFixed(2)}%
+          {typeof changePercent === "number" ? `${isPositive ? "+" : ""}${changePercent.toFixed(2)}%` : "—"}
         </span>
       </td>
       <td className="px-4 py-3">
         {snap?.currentRisk ? <RiskBadge level={snap.currentRisk} /> : <span className="text-muted-foreground text-xs">—</span>}
       </td>
       <td className="px-4 py-3 font-mono tabular-nums text-right text-xs text-foreground/70">
-        {snap?.currentVolatility?.toFixed(4) ?? "—"}
+        {typeof snap?.currentVolatility === "number" ? snap.currentVolatility.toFixed(4) : "—"}
       </td>
       <td className="px-4 py-3">
         {driftItem?.driftFlag ? (
@@ -205,7 +207,9 @@ function SymbolRow({
               <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-destructive opacity-50" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
             </span>
-            <span className="text-risk-high-text text-xs font-mono">{driftItem.driftScore.toFixed(3)}</span>
+            <span className="text-risk-high-text text-xs font-mono">
+              {typeof driftItem?.driftScore === "number" ? driftItem.driftScore.toFixed(3) : "—"}
+            </span>
           </div>
         ) : (
           <span className="text-muted-foreground/30 text-xs font-mono">—</span>
@@ -214,3 +218,6 @@ function SymbolRow({
     </tr>
   );
 }
+
+
+
