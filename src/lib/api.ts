@@ -1,88 +1,18 @@
-import { mockApi } from "./mock-data";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
-// ── Types ──────────────────────────────────────────────
-export interface SymbolInfo {
-  symbol: string;
-  name: string;
-  sector: string;
-  exchange: string;
-  marketCap: string;
-  price: number;
-  change: number;
-  changePercent: number;
+if (!import.meta.env.VITE_API_URL) {
+  console.warn("[QuantaRisk] VITE_API_URL is not set � falling back to localhost");
 }
 
-export interface RiskOverview {
-  totalSymbols: number;
-  highRiskCount: number;
-  mediumRiskCount: number;
-  lowRiskCount: number;
-  lastUpdated: string;
-}
-
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
-
-export interface SymbolSnapshot {
-  symbol: string;
-  currentRisk: RiskLevel;
-  currentVolatility: number;
-  driftFlag: boolean;
-  driftScore: number;
-}
-
-export interface HistoryPoint {
-  date: string;
-  volatility: number;
-  riskLevel: RiskLevel;
-}
-
-export interface SymbolHistory {
-  symbol: string;
-  points: HistoryPoint[];
-}
-
-export interface DriftSummaryItem {
-  symbol: string;
-  driftFlag: boolean;
-  driftScore: number;
-}
-
-export interface SymbolRatios {
-  pe: number;
-  eps: number;
-  pb: number;
-  ps: number;
-  debtToEquity: number;
-  currentRatio: number;
-  roe: number;
-  roa: number;
-  grossMargin: number;
-  operatingMargin: number;
-  netMargin: number;
-  dividendYield: number;
-  beta: number;
-  sharpeRatio: number;
-  maxDrawdown: number;
-}
-
-// ── Config ─────────────────────────────────────────────
-const USE_MOCK = true;
-const API_BASE = "http://127.0.0.1:8000/api";
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
-const liveApi = {
-  getSymbols: () => fetchJson<SymbolInfo[]>("/symbols"),
-  getRiskOverview: () => fetchJson<RiskOverview>("/risk/overview"),
-  getRiskSnapshot: (symbol: string) => fetchJson<SymbolSnapshot>(`/risk/snapshot?symbol=${symbol}`),
-  getRiskHistory: (symbol: string) => fetchJson<SymbolHistory>(`/risk/history?symbol=${symbol}`),
-  getDriftSummary: () => fetchJson<DriftSummaryItem[]>("/drift/summary"),
-  getSymbolRatios: (symbol: string) => fetchJson<SymbolRatios>(`/ratios?symbol=${symbol}`),
-  searchSymbols: (query: string) => fetchJson<SymbolInfo[]>(`/symbols/search?q=${query}`),
+export const apiUrl = (path: string): string => {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE}${normalized}`;
 };
 
-export const api = USE_MOCK ? mockApi : liveApi;
+export const API = {
+  health:       () => apiUrl("/api/health"),
+  symbols:      () => apiUrl("/api/symbols"),
+  pricesAll:    () => apiUrl("/api/prices"),
+  alerts:       () => apiUrl("/api/alerts"),
+  // add/edit other endpoints to match app.main.py
+};
