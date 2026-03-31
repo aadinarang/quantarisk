@@ -54,7 +54,7 @@ function generateHistory(symbol: string): SymbolHistory {
     const level: HistoryPoint["riskLevel"] = vol > 0.035 ? "HIGH" : vol > 0.02 ? "MEDIUM" : "LOW";
     points.push({
       date: d.toISOString().slice(0, 10),
-      volatility: parseFloat(vol.toFixed(4)),
+      volatility: parseFloat((typeof vol === "number" && Number.isFinite(vol) ? vol : 0).toFixed(4)),
       riskLevel: level,
     });
   }
@@ -91,3 +91,4 @@ export const mockApi = {
     return delay(results, 100);
   },
 };
+

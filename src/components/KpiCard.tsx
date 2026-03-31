@@ -76,7 +76,7 @@ function Sparkline({ data, color, width = 64, height = 20 }: { data: number[]; c
       .map((v, i) => {
         const x = i * step;
         const y = height - ((v - min) / range) * (height - 2) - 1;
-        return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+        return `${i === 0 ? "M" : "L"} ${Number.isFinite(x) ? x.toFixed(1) : x} ${Number.isFinite(y) ? y.toFixed(1) : y}`;
       })
       .join(" ");
   }, [data, width, height]);
@@ -91,7 +91,7 @@ function Sparkline({ data, color, width = 64, height = 20 }: { data: number[]; c
     const points = data.map((v, i) => {
       const x = i * step;
       const y = height - ((v - min) / range) * (height - 2) - 1;
-      return `${x.toFixed(1)} ${y.toFixed(1)}`;
+      return `${Number.isFinite(x) ? x.toFixed(1) : x} ${Number.isFinite(y) ? y.toFixed(1) : y}`;
     });
 
     return `M 0 ${height} L ${points.join(" L ")} L ${width} ${height} Z`;
@@ -164,3 +164,4 @@ export function KpiCard({ label, value, icon: Icon, variant = "default", delay =
     </div>
   );
 }
+

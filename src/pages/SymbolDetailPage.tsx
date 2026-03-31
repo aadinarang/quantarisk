@@ -585,3 +585,4 @@ function RatioItem({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
