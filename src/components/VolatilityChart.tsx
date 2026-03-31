@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     <div className="bg-card border border-border rounded px-3 py-2 text-xs font-mono shadow-lg space-y-0.5">
       <p className="text-muted-foreground">{label}</p>
       <p className="text-foreground">
-        Vol: <span className="font-semibold">{vol?.toFixed(4)}</span>
+        Vol: <span className="font-semibold">{fmtNum(vol, 4)}</span>
       </p>
       <p style={{ color }}>Risk: {point.riskLevel}</p>
     </div>
@@ -174,7 +174,7 @@ export function VolatilityChart({
             tickLine={false}
             axisLine={false}
             width={44}
-            tickFormatter={v => v.toFixed(3)}
+            tickFormatter={(v: unknown) => fmtNum(v, 3)}
           />
           <Tooltip content={<CustomTooltip />} />
           <Area
