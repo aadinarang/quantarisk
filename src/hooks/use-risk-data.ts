@@ -21,3 +21,9 @@ export const useSymbolRatios = (symbol: string) =>
 
 export const useSearchSymbols = (query: string) =>
   useQuery({ queryKey: ["search-symbols", query], queryFn: () => api.searchSymbols(query), enabled: query.length >= 1, retry: 1 });
+
+export const useSectorBreakdown = () =>
+  useQuery({ queryKey: ["sector-breakdown"], queryFn: api.getSectorBreakdown, retry: 1 });
+
+export const useCorrelationMatrix = () =>
+  useQuery({ queryKey: ["correlation-matrix"], queryFn: api.getCorrelationMatrix, retry: 1 });
