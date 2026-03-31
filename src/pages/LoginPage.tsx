@@ -5,18 +5,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: isSignUp ? "Account created (demo)" : "Logged in (demo)", description: "Redirecting to dashboard..." });
-    setTimeout(() => navigate("/"), 500);
+
+    if (isSignUp && password !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      if (isSignUp) {
+        await api.signup(email.trim(), password);
+        toast({ title: "Account created", description: "You are now signed in." });
+      } else {
+        await api.login(email.trim(), password);
+        toast({ title: "Signed in", description: "Welcome back." });
+      }
+      navigate("/");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Request failed";
+      toast({ title: isSignUp ? "Sign up failed" : "Login failed", description: message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -43,6 +66,7 @@ export default function LoginPage() {
               placeholder="you@example.com"
               className="bg-secondary border-border text-sm"
               required
+              autoComplete="email"
             />
           </div>
           <div className="space-y-1.5">
@@ -55,6 +79,8 @@ export default function LoginPage() {
               placeholder="••••••••"
               className="bg-secondary border-border text-sm"
               required
+              minLength={8}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
             />
           </div>
           {isSignUp && (
@@ -63,20 +89,24 @@ export default function LoginPage() {
               <Input
                 id="confirm"
                 type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 className="bg-secondary border-border text-sm"
                 required
+                minLength={8}
+                autoComplete="new-password"
               />
             </div>
           )}
-          <Button type="submit" className="w-full" size="sm">
-            {isSignUp ? "Create Account" : "Sign In"}
+          <Button type="submit" className="w-full" size="sm" disabled={isSubmitting}>
+            {isSubmitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
         </form>
 
         <p className="text-center text-xs text-muted-foreground">
           {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary hover:underline">
+          <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-primary hover:underline">
             {isSignUp ? "Sign in" : "Sign up"}
           </button>
         </p>

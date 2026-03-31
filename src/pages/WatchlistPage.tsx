@@ -4,16 +4,26 @@ import { useWatchlist } from "@/hooks/use-watchlist";
 import { useSymbols, useRiskSnapshot } from "@/hooks/use-risk-data";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 export default function WatchlistPage() {
-  const { watchlist, addSymbol, removeSymbol } = useWatchlist();
+  const { watchlist, addSymbol, removeSymbol, isLoggedIn, isLoading } = useWatchlist();
   const { data: allSymbols } = useSymbols();
   const navigate = useNavigate();
   const [showAdd, setShowAdd] = useState(false);
 
   const available = allSymbols?.filter((s) => !watchlist.includes(s.symbol)) ?? [];
+
+  if (!isLoggedIn) {
+    return (
+      <div className="p-6 lg:p-8 space-y-6">
+        <div className="rounded-md border border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">Sign in to access your persistent watchlist.</p>
+          <Button size="sm" className="mt-4" onClick={() => navigate("/login")}>Go to Login</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -28,7 +38,6 @@ export default function WatchlistPage() {
         </Button>
       </div>
 
-      {/* Add symbol dropdown */}
       {showAdd && available.length > 0 && (
         <div className="rounded-md border border-border bg-card p-3">
           <p className="text-xs text-muted-foreground mb-2">Select a symbol to add:</p>
@@ -36,7 +45,10 @@ export default function WatchlistPage() {
             {available.map((s) => (
               <button
                 key={s.symbol}
-                onClick={() => { addSymbol(s.symbol); setShowAdd(false); }}
+                onClick={() => {
+                  addSymbol(s.symbol);
+                  setShowAdd(false);
+                }}
                 className="px-3 py-1.5 text-xs font-mono bg-secondary hover:bg-accent rounded-md border border-border transition-colors"
               >
                 {s.symbol}
@@ -46,8 +58,11 @@ export default function WatchlistPage() {
         </div>
       )}
 
-      {/* Watchlist table */}
-      {watchlist.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-md border border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">Loading watchlist...</p>
+        </div>
+      ) : watchlist.length === 0 ? (
         <div className="rounded-md border border-border bg-card p-12 text-center">
           <p className="text-sm text-muted-foreground">Your watchlist is empty. Add symbols to track them here.</p>
         </div>
@@ -89,14 +104,17 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
       </td>
       <td className="px-4 py-3 text-right">
         {snap?.driftFlag ? (
-          <span className="text-risk-high-text text-xs font-mono">{typeof snap?.driftScore === "number" ? snap.driftScore.toFixed(3) : "�"}</span>
+          <span className="text-risk-high-text text-xs font-mono">{typeof snap?.driftScore === "number" ? snap.driftScore.toFixed(3) : "—"}</span>
         ) : (
           <span className="text-muted-foreground text-xs">—</span>
         )}
       </td>
       <td className="px-4 py-3">
         <button
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           className="text-muted-foreground hover:text-destructive transition-colors"
         >
           <X className="h-3.5 w-3.5" />
@@ -105,4 +123,3 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
     </tr>
   );
 }
-

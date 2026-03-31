@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const TOKEN_KEY = "quantarisk-access-token";
 
 if (!import.meta.env.VITE_API_URL) {
   console.warn("[QuantaRisk] VITE_API_URL is not set - falling back to localhost");
@@ -9,18 +10,40 @@ export const apiUrl = (path: string): string => {
   return `${API_BASE}${normalized}`;
 };
 
+export const auth = {
+  getToken: (): string | null => localStorage.getItem(TOKEN_KEY),
+  setToken: (token: string) => localStorage.setItem(TOKEN_KEY, token),
+  clearToken: () => localStorage.removeItem(TOKEN_KEY),
+  isLoggedIn: () => Boolean(localStorage.getItem(TOKEN_KEY)),
+};
+
 const getJson = async (path: string, options?: RequestInit) => {
+  const token = auth.getToken();
+  const headers = new Headers(options?.headers || {});
+
+  if (!headers.has("Content-Type") && !(options?.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const res = await fetch(apiUrl(path), {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
     ...options,
+    headers,
   });
+
+  if (res.status === 401) {
+    auth.clearToken();
+  }
 
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
+  }
+
+  if (res.status === 204) {
+    return null;
   }
 
   return res.json();
@@ -70,10 +93,25 @@ const normalizeRatios = (r: any) => ({
   maxDrawdown: num(r.maxDrawdown ?? r.max_drawdown),
 });
 
+const normalizeUser = (u: any) => ({
+  id: num(u?.id),
+  email: str(u?.email),
+  name: str(u?.name),
+  preferences: {
+    emailAlerts: Boolean(u?.preferences?.emailAlerts),
+    driftAlerts: Boolean(u?.preferences?.driftAlerts),
+  },
+  createdAt: str(u?.createdAt),
+});
+
 export const api = {
   getSymbols: async () => {
     const data = await getJson("/api/symbols");
-    return Array.isArray(data) ? data.map(normalizeSymbol) : Array.isArray(data?.value) ? data.value.map(normalizeSymbol) : [];
+    return Array.isArray(data)
+      ? data.map(normalizeSymbol)
+      : Array.isArray(data?.value)
+        ? data.value.map(normalizeSymbol)
+        : [];
   },
 
   getRiskOverview: async () => {
@@ -144,21 +182,85 @@ export const api = {
     return Array.isArray(data) ? data.map(normalizeSymbol) : [];
   },
 
+  signup: async (email: string, password: string) => {
+    const data = await getJson("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (data?.access_token) {
+      auth.setToken(data.access_token);
+    }
+    return {
+      accessToken: str(data?.access_token),
+      user: normalizeUser(data?.user),
+    };
+  },
+
+  login: async (email: string, password: string) => {
+    const data = await getJson("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (data?.access_token) {
+      auth.setToken(data.access_token);
+    }
+    return {
+      accessToken: str(data?.access_token),
+      user: normalizeUser(data?.user),
+    };
+  },
+
+  logout: () => auth.clearToken(),
+
+  getMe: async () => {
+    const data = await getJson("/api/me");
+    return normalizeUser(data);
+  },
+
+  updateMe: async (payload: { name?: string; email?: string }) => {
+    const data = await getJson("/api/me", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return normalizeUser(data);
+  },
+
+  updatePreferences: async (payload: { emailAlerts?: boolean; driftAlerts?: boolean }) => {
+    const data = await getJson("/api/me/preferences", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return normalizeUser(data);
+  },
+
+  getWatchlist: async () => {
+    const data = await getJson("/api/watchlist");
+    return Array.isArray(data) ? data.map((item) => str(item).toUpperCase()).filter(Boolean) : [];
+  },
+
+  addToWatchlist: async (symbol: string) => {
+    await getJson("/api/watchlist", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    });
+    return true;
+  },
+
+  removeFromWatchlist: async (symbol: string) => {
+    await getJson(`/api/watchlist/${encodeURIComponent(symbol)}`, {
+      method: "DELETE",
+    });
+    return true;
+  },
+
   getDataQuality: () => getJson("/api/data-quality"),
   getAlerts: () => getJson("/api/alerts"),
-  getMyAlerts: () => getJson("/api/alerts"),
-
+  getMyAlerts: () => getJson("/api/my-alerts"),
   getSectorBreakdown: () => getJson("/api/risk/sectors"),
   getCorrelationMatrix: () => getJson("/api/risk/correlation"),
   getVaR: (symbol: string) => getJson(`/api/risk/var?symbol=${encodeURIComponent(symbol)}`),
   getPriceForecast: (symbol: string, days: number) =>
     getJson(`/api/predict?symbol=${encodeURIComponent(symbol)}&days=${days}`),
-
-  getMe: async () => null,
-
-  markMyAlertRead: (alertId: string) =>
-    getJson(`/api/alerts/${alertId}/read`, { method: "POST" }),
-
-  markAllMyAlertsRead: () =>
-    getJson("/api/alerts/read-all", { method: "POST" }),
+  markMyAlertRead: (alertId: string) => getJson(`/api/alerts/${alertId}/read`, { method: "POST" }),
+  markAllMyAlertsRead: () => getJson("/api/alerts/read-all", { method: "POST" }),
 };

@@ -1,54 +1,130 @@
-import { Activity, Shield, TrendingUp, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { api, auth } from "@/lib/api";
 
-export default function AboutPage() {
+export default function AccountPage() {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [driftAlerts, setDriftAlerts] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!auth.isLoggedIn()) {
+        navigate("/login");
+        return;
+      }
+      try {
+        const me = await api.getMe();
+        setName(me.name);
+        setEmail(me.email);
+        setEmailAlerts(Boolean(me.preferences?.emailAlerts));
+        setDriftAlerts(Boolean(me.preferences?.driftAlerts));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load account";
+        toast({ title: "Unable to load account", description: message, variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  }, [navigate, toast]);
+
+  const handleSaveProfile = async () => {
+    try {
+      setSavingProfile(true);
+      const me = await api.updateMe({ name, email });
+      setName(me.name);
+      setEmail(me.email);
+      toast({ title: "Profile updated", description: "Your account details were saved." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save profile";
+      toast({ title: "Profile update failed", description: message, variant: "destructive" });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      setSavingPrefs(true);
+      const me = await api.updatePreferences({ emailAlerts, driftAlerts });
+      setEmailAlerts(Boolean(me.preferences?.emailAlerts));
+      setDriftAlerts(Boolean(me.preferences?.driftAlerts));
+      toast({ title: "Notification preferences saved" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save preferences";
+      toast({ title: "Preferences update failed", description: message, variant: "destructive" });
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    toast({ title: "Signed out" });
+    navigate("/login");
+  };
+
+  if (loading) {
+    return <div className="p-6 lg:p-8 text-sm text-muted-foreground">Loading account...</div>;
+  }
+
   return (
-    <div className="p-6 lg:p-8 max-w-2xl space-y-8">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">QuantaRisk</h2>
+    <div className="p-6 lg:p-8 max-w-lg space-y-6">
+      <section className="rounded-md border border-border bg-card p-5 space-y-4">
+        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Profile</h2>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Display Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-secondary border-border text-sm h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Email</Label>
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary border-border text-sm h-8" />
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          QuantaRisk is a real-time market risk monitoring platform designed for quantitative analysts and portfolio managers. 
-          It provides volatility tracking, drift detection, and risk assessment across equity and ETF instruments.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <FeatureCard icon={Shield} title="Risk Monitoring" description="Real-time risk classification across LOW, MEDIUM, and HIGH bands based on rolling volatility quantiles." />
-        <FeatureCard icon={TrendingUp} title="Drift Detection" description="Detects volatility regime shifts by comparing recent vs. reference distribution windows." />
-        <FeatureCard icon={Zap} title="Fast Refresh" description="Data refreshes every 30 seconds with configurable window lengths and quantile thresholds." />
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground">How It Works</h3>
-        <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
-          <p>
-            Volatility is computed from rolling standard deviation of daily log returns over a configurable window.
-            Risk levels are assigned by comparing each symbol's current volatility against historical quantile thresholds.
-          </p>
-          <p>
-            Drift detection uses a statistical comparison between the recent volatility distribution and a longer reference window.
-            When the distributions diverge beyond a threshold, a drift flag is raised indicating a potential regime change.
-          </p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleSaveProfile} className="text-xs" disabled={savingProfile}>
+            {savingProfile ? "Saving..." : "Save Profile"}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleLogout} className="text-xs">
+            Sign Out
+          </Button>
         </div>
-      </div>
+      </section>
 
-      <div className="border-t border-border pt-4">
-        <p className="text-xs text-muted-foreground">
-          Built with React, Recharts, and a FastAPI backend. Data is simulated in demo mode.
-        </p>
-      </div>
-    </div>
-  );
-}
+      <section className="rounded-md border border-border bg-card p-5 space-y-4">
+        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notifications</h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Email alerts for risk changes</Label>
+            <Switch checked={emailAlerts} onCheckedChange={setEmailAlerts} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Drift detection alerts</Label>
+            <Switch checked={driftAlerts} onCheckedChange={setDriftAlerts} />
+          </div>
+        </div>
+        <Button size="sm" variant="outline" onClick={handleSaveNotifications} className="text-xs" disabled={savingPrefs}>
+          {savingPrefs ? "Saving..." : "Save Preferences"}
+        </Button>
+      </section>
 
-function FeatureCard({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
-  return (
-    <div className="rounded-md border border-border bg-card p-4 space-y-2">
-      <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />
-      <h4 className="text-xs font-medium text-foreground">{title}</h4>
-      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+      <section className="rounded-md border border-border bg-card p-5 space-y-3">
+        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Session</h2>
+        <p className="text-xs text-muted-foreground">Your account is now backed by the API. Watchlist and alert state are tied to this signed-in user.</p>
+      </section>
     </div>
   );
 }
