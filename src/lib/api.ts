@@ -7,6 +7,14 @@ if (!import.meta.env.VITE_API_URL) {
 
 export type RiskLevel = "Low" | "Medium" | "High" | string;
 
+export interface SectorBreakdownItem {
+  sector: string;
+  high: number;
+  medium: number;
+  low: number;
+  total: number;
+}
+
 export interface SymbolItem {
   symbol: string;
   name: string;
@@ -142,6 +150,22 @@ const normalizeRiskLevel = (value: unknown): RiskLevel => {
 
   return str(value, "Low");
 };
+
+
+const normalizeSectorBreakdownItem = (item: any): SectorBreakdownItem => {
+  const high = num(item.high ?? item.highRiskCount ?? item.high_count);
+  const medium = num(item.medium ?? item.mediumRiskCount ?? item.medium_count);
+  const low = num(item.low ?? item.lowRiskCount ?? item.low_count);
+
+  return {
+    sector: str(item.sector ?? item.name ?? item.industry ?? "Unknown"),
+    high,
+    medium,
+    low,
+    total: num(item.total ?? item.symbolCount ?? high + medium + low),
+  };
+};
+
 
 const normalizeSymbol = (s: any): SymbolItem => ({
   symbol: str(s.symbol ?? s.ticker),
@@ -343,7 +367,23 @@ export const api = {
   getDataQuality: () => getJson("/api/data-quality"),
   getAlerts: () => getJson("/api/alerts"),
   getMyAlerts: () => getJson("/api/my-alerts"),
-  getSectorBreakdown: () => getJson("/api/risk/sectors"),
+  getSectorBreakdown: async (): Promise<SectorBreakdownItem[]> => {
+  const data = await getJson("/api/risk/sectors");
+
+  if (Array.isArray(data)) {
+    return data.map(normalizeSectorBreakdownItem);
+  }
+
+  if (Array.isArray(data?.items)) {
+    return data.items.map(normalizeSectorBreakdownItem);
+  }
+
+  if (Array.isArray(data?.sectors)) {
+    return data.sectors.map(normalizeSectorBreakdownItem);
+  }
+
+  return [];
+},
   getCorrelationMatrix: () => getJson("/api/risk/correlation"),
   getVaR: (symbol: string) => getJson(`/api/risk/var?symbol=${encodeURIComponent(symbol)}`),
   getPriceForecast: (symbol: string, days: number) =>
