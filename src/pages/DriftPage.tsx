@@ -62,7 +62,7 @@ export default function DriftPage() {
                 <td className="px-4 py-3 text-muted-foreground text-xs">{nameMap.get(d.symbol) ?? "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono tabular-nums text-xs text-foreground">{d.driftScore.toFixed(3)}</span>
+                    <span className="font-mono tabular-nums text-xs text-foreground">{(d.driftScore ?? 0).toFixed(3)}</span>
                     <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
