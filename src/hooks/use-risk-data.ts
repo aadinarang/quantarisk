@@ -3,7 +3,11 @@ import { api } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 
 export const useSymbols = () =>
-  useQuery({ queryKey: ["symbols"], queryFn: api.getSymbols, retry: 1 });
+  useQuery({
+    queryKey: ["symbols"],
+    queryFn: api.getSymbols,
+    retry: 1,
+  });
 
 export const useRiskOverview = () =>
   useQuery({
@@ -30,7 +34,11 @@ export const useRiskHistory = (symbol: string) =>
   });
 
 export const useDriftSummary = () =>
-  useQuery({ queryKey: ["drift-summary"], queryFn: api.getDriftSummary, retry: 1 });
+  useQuery({
+    queryKey: ["drift-summary"],
+    queryFn: api.getDriftSummary,
+    retry: 1,
+  });
 
 export const useSymbolRatios = (symbol: string) =>
   useQuery({
@@ -49,7 +57,11 @@ export const useSearchSymbols = (query: string) =>
   });
 
 export const useDataQuality = () =>
-  useQuery({ queryKey: ["data-quality"], queryFn: api.getDataQuality, retry: 1 });
+  useQuery({
+    queryKey: ["data-quality"],
+    queryFn: api.getDataQuality,
+    retry: 1,
+  });
 
 export const useAlerts = () =>
   useQuery({
@@ -59,14 +71,17 @@ export const useAlerts = () =>
     retry: 1,
   });
 
-export const useMyAlerts = () =>
-  useQuery({
-    queryKey: ["my-alerts"],
+export const useMyAlerts = () => {
+  const authenticated = isAuthenticated();
+
+  return useQuery({
+    queryKey: ["my-alerts", authenticated],
     queryFn: api.getMyAlerts,
-    enabled: isAuthenticated(),
-    refetchInterval: 30000,
+    enabled: authenticated,
+    refetchInterval: authenticated ? 30000 : false,
     retry: 1,
   });
+};
 
 export const useSectorBreakdown = () =>
   useQuery({
@@ -99,16 +114,20 @@ export const usePriceForecast = (symbol: string, days: number) =>
     staleTime: 60000,
   });
 
-export const useMe = () =>
-  useQuery({
-    queryKey: ["me"],
+export const useMe = () => {
+  const authenticated = isAuthenticated();
+
+  return useQuery({
+    queryKey: ["me", authenticated],
     queryFn: api.getMe,
-    enabled: isAuthenticated(),
+    enabled: authenticated,
     retry: 0,
   });
+};
 
 export const useMarkAlertRead = () => {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: (alertId: string) => api.markMyAlertRead(alertId),
     onSuccess: () => {
@@ -120,6 +139,7 @@ export const useMarkAlertRead = () => {
 
 export const useMarkAllAlertsRead = () => {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: api.markAllMyAlertsRead,
     onSuccess: () => {

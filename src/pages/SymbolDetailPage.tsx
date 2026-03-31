@@ -1,12 +1,6 @@
-import { useMemo, useState } from "react";
+ï»¿import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import {
-  AlertTriangle,
-  Star,
-  StarOff,
-  ChevronRight,
-  Download,
-} from "lucide-react";
+import { AlertTriangle, Star, StarOff, ChevronRight, Download } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -28,12 +22,18 @@ import {
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { RiskBadge } from "@/components/RiskBadge";
 import { VolatilityChart } from "@/components/VolatilityChart";
-import {
-  TimeRangePicker,
-  TIME_RANGE_DAYS,
-} from "@/components/TimeRangePicker";
-import type { TimeRange } from "@/components/TimeRangePicker";
 import { Button } from "@/components/ui/button";
+
+type TimeRange = "1M" | "3M" | "6M" | "1Y";
+
+const TIME_RANGE_DAYS: Record<TimeRange, number> = {
+  "1M": 30,
+  "3M": 90,
+  "6M": 180,
+  "1Y": 365,
+};
+
+const TIME_RANGE_OPTIONS: TimeRange[] = ["1M", "3M", "6M", "1Y"];
 
 const FORECAST_OPTIONS = [
   { label: "10D", value: 10 },
@@ -41,103 +41,50 @@ const FORECAST_OPTIONS = [
   { label: "30D", value: 30 },
 ];
 
-function isNum(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function fmt(value: unknown, digits = 2, fallback = "—") {
-  return isNum(value) ? value.toFixed(digits) : fallback;
-}
-
-function fmtCurrency(value: unknown, digits = 2) {
-  return isNum(value) ? `$${value.toFixed(digits)}` : "—";
-}
-
-function fmtPercent(value: unknown, digits = 2) {
-  return isNum(value) ? `${value.toFixed(digits)}%` : "—";
-}
-
-function lastNumber(arr: unknown): number | undefined {
-  return Array.isArray(arr) && arr.length > 0 && isNum(arr[arr.length - 1])
-    ? arr[arr.length - 1]
-    : undefined;
+function safe(v: number | undefined | null): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
 export default function SymbolDetailPage() {
-  const { symbol } = useParams<{ symbol: string }>();
+  const { symbol: rawSymbol } = useParams<{ symbol: string }>();
+  const symbol = rawSymbol ?? "";
+
   const [timeRange, setTimeRange] = useState<TimeRange>("6M");
   const [forecastDays, setForecastDays] = useState(10);
 
-  const { data: snap, isLoading } = useRiskSnapshot(symbol ?? "");
-  const { data: history } = useRiskHistory(symbol ?? "");
-  const { data: ratios } = useSymbolRatios(symbol ?? "");
+  const { data: snap, isLoading } = useRiskSnapshot(symbol);
+  const { data: history } = useRiskHistory(symbol);
+  const { data: ratios } = useSymbolRatios(symbol);
   const { data: symbols } = useSymbols();
-  const { data: varEstimate } = useVaR(symbol ?? "");
-  const { data: forecast } = usePriceForecast(symbol ?? "", forecastDays);
+  const { data: varEstimate } = useVaR(symbol);
+  const { data: forecast } = usePriceForecast(symbol, forecastDays);
   const { isInWatchlist, addSymbol, removeSymbol } = useWatchlist();
-
-  if (!symbol) return null;
 
   const info = symbols?.find((s) => s.symbol === symbol);
   const inWatchlist = isInWatchlist(symbol);
 
-  const handleExportHistory = () => {
-    if (!history?.points?.length) return;
-
-    const rows = [
-      ["Date", "Volatility", "Risk Level"],
-      ...history.points.map((p) => [
-        p?.date ?? "",
-        isNum(p?.volatility) ? p.volatility.toString() : "",
-        p?.riskLevel ?? "",
-      ]),
-    ];
-
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${symbol}-volatility-history.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const forecastChartData = useMemo(() => {
-    if (!forecast || !info || !isNum(info.price)) return [];
+    if (!forecast || !info || info.price == null) return [];
 
     const nowLabel = new Date().toISOString().slice(0, 10);
-    const rows: Array<{
-      date: string;
-      price: number | null;
-      upper: number | null;
-      lower: number | null;
-      kind: "Current" | "Forecast";
-    }> = [
+    const currentPrice = safe(info.price);
+
+    const rows = [
       {
         date: nowLabel,
-        price: info.price,
-        upper: info.price,
-        lower: info.price,
+        price: currentPrice,
+        upper: currentPrice,
+        lower: currentPrice,
         kind: "Current",
       },
     ];
 
-    const dates = Array.isArray(forecast.forecastDates)
-      ? forecast.forecastDates
-      : [];
-    const prices = Array.isArray(forecast.forecastPrices)
-      ? forecast.forecastPrices
-      : [];
-    const upper = Array.isArray(forecast.upperBand) ? forecast.upperBand : [];
-    const lower = Array.isArray(forecast.lowerBand) ? forecast.lowerBand : [];
-
-    dates.forEach((date, idx) => {
+    forecast.forecastDates.forEach((date, idx) => {
       rows.push({
         date,
-        price: isNum(prices[idx]) ? prices[idx] : null,
-        upper: isNum(upper[idx]) ? upper[idx] : null,
-        lower: isNum(lower[idx]) ? lower[idx] : null,
+        price: safe(forecast.forecastPrices[idx]),
+        upper: safe(forecast.upperBand[idx]),
+        lower: safe(forecast.lowerBand[idx]),
         kind: "Forecast",
       });
     });
@@ -145,9 +92,33 @@ export default function SymbolDetailPage() {
     return rows;
   }, [forecast, info]);
 
-  const dayNPrice = lastNumber(forecast?.forecastPrices);
-  const upperBandLast = lastNumber(forecast?.upperBand);
-  const lowerBandLast = lastNumber(forecast?.lowerBand);
+  const handleExportHistory = () => {
+    if (!history?.points?.length || !symbol) return;
+
+    const rows = [
+      ["Date", "Volatility", "Risk Level"],
+      ...history.points.map((p) => [p.date, p.volatility.toString(), p.riskLevel]),
+    ];
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${symbol}-volatility-history.csv`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  if (!symbol) {
+    return (
+      <div className="p-6 lg:p-8">
+        <p className="text-sm text-muted-foreground">No symbol selected.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 space-y-5">
@@ -165,45 +136,37 @@ export default function SymbolDetailPage() {
             <span className="animate-sonar absolute inline-flex h-full w-full rounded-full bg-destructive opacity-50" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
           </span>
-          <AlertTriangle
-            className="h-3.5 w-3.5 text-destructive"
-            strokeWidth={1.5}
-          />
+          <AlertTriangle className="h-3.5 w-3.5 text-destructive" strokeWidth={1.5} />
           <span className="text-xs text-risk-high-text font-mono">
-            VOLATILITY REGIME SHIFT DETECTED · KS-score {fmt(snap?.driftScore, 3)}
+            VOLATILITY REGIME SHIFT DETECTED Â· KS-score {safe(snap.driftScore).toFixed(3)}
           </span>
         </div>
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
-        <h2 className="text-2xl font-semibold font-mono text-foreground">
-          {symbol}
-        </h2>
+        <h2 className="text-2xl font-semibold font-mono text-foreground">{symbol}</h2>
         {info && <span className="text-sm text-muted-foreground">{info.name}</span>}
         {snap && <RiskBadge level={snap.currentRisk} />}
+
         <div className="ml-auto flex items-center gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={handleExportHistory}
             className="gap-1.5 text-xs"
+            disabled={!history?.points?.length}
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
           </Button>
+
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              inWatchlist ? removeSymbol(symbol) : addSymbol(symbol)
-            }
+            onClick={() => (inWatchlist ? removeSymbol(symbol) : addSymbol(symbol))}
             className="gap-1.5 text-xs"
           >
-            {inWatchlist ? (
-              <StarOff className="h-3.5 w-3.5" />
-            ) : (
-              <Star className="h-3.5 w-3.5" />
-            )}
+            {inWatchlist ? <StarOff className="h-3.5 w-3.5" /> : <Star className="h-3.5 w-3.5" />}
             {inWatchlist ? "Remove" : "Watch"}
           </Button>
         </div>
@@ -211,29 +174,25 @@ export default function SymbolDetailPage() {
 
       {info && (
         <div className="flex items-baseline gap-4 flex-wrap">
-          <span className="font-mono text-lg text-foreground">
-            {fmtCurrency(info.price, 2)}
-          </span>
+          <span className="font-mono text-lg text-foreground">${safe(info.price).toFixed(2)}</span>
           <span
             className={`font-mono text-sm ${
-              isNum(info.change) && info.change >= 0
-                ? "text-risk-low-text"
-                : "text-risk-high-text"
+              safe(info.change) >= 0 ? "text-risk-low-text" : "text-risk-high-text"
             }`}
           >
-            {isNum(info.change) && info.change >= 0 ? "+" : ""}
-            {fmt(info.change, 2)} (
-            {isNum(info.changePercent) && info.changePercent >= 0 ? "+" : ""}
-            {fmt(info.changePercent, 2)}%)
+            {safe(info.change) >= 0 ? "+" : ""}
+            {safe(info.change).toFixed(2)} (
+            {safe(info.changePercent) >= 0 ? "+" : ""}
+            {safe(info.changePercent).toFixed(2)}%)
           </span>
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {info.exchange} · {info.sector}
+            {info.exchange} Â· {info.sector}
           </span>
         </div>
       )}
 
       {isLoading ? (
-        <p className="text-xs text-muted-foreground font-mono">Loading…</p>
+        <p className="text-xs text-muted-foreground font-mono">Loadingâ€¦</p>
       ) : snap ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -242,15 +201,31 @@ export default function SymbolDetailPage() {
                 <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
                   Volatility History
                 </h3>
-                <TimeRangePicker value={timeRange} onChange={setTimeRange} />
+
+                <div className="flex items-center gap-1 bg-secondary/60 rounded-md p-0.5 border border-border">
+                  {TIME_RANGE_OPTIONS.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setTimeRange(r)}
+                      className={`px-2.5 py-1 text-[10px] font-mono rounded transition-all duration-150 ${
+                        timeRange === r
+                          ? "bg-card text-foreground shadow-sm border border-border"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {history?.points?.length ? (
                 <VolatilityChart
                   points={history.points}
                   height={340}
-                  showBands
+                  showBands={true}
                   days={TIME_RANGE_DAYS[timeRange]}
+                  showRangePicker={false}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground py-12 text-center font-mono">
@@ -266,22 +241,15 @@ export default function SymbolDetailPage() {
                 </h3>
                 <DataRow
                   label="Current Volatility"
-                  value={fmt(snap.currentVolatility, 4)}
+                  value={safe(snap.currentVolatility).toFixed(4)}
                 />
-                <DataRow label="Risk Level" value={snap.currentRisk ?? "—"} />
+                <DataRow label="Risk Level" value={snap.currentRisk} />
                 <DataRow
                   label="Drift Status"
-                  value={
-                    snap.driftFlag
-                      ? `Flagged · ${fmt(snap.driftScore, 3)}`
-                      : "Stable"
-                  }
+                  value={snap.driftFlag ? `Flagged Â· ${safe(snap.driftScore).toFixed(3)}` : "Stable"}
                   highlight={snap.driftFlag}
                 />
-                <DataRow
-                  label="Drift Score"
-                  value={fmt(snap.driftScore, 4)}
-                />
+                <DataRow label="Drift Score" value={safe(snap.driftScore).toFixed(4)} />
               </div>
 
               {varEstimate && (
@@ -296,26 +264,17 @@ export default function SymbolDetailPage() {
                   </div>
                   <DataRow
                     label="VaR (95%)"
-                    value={`-${fmt(
-                      isNum(varEstimate?.var95) ? varEstimate.var95 * 100 : undefined,
-                      2
-                    )}%`}
+                    value={`âˆ’${(safe(varEstimate.var95) * 100).toFixed(2)}%`}
                     highlight
                   />
                   <DataRow
                     label="VaR (99%)"
-                    value={`-${fmt(
-                      isNum(varEstimate?.var99) ? varEstimate.var99 * 100 : undefined,
-                      2
-                    )}%`}
+                    value={`âˆ’${(safe(varEstimate.var99) * 100).toFixed(2)}%`}
                     highlight
                   />
                   <DataRow
                     label="CVaR (95%)"
-                    value={`-${fmt(
-                      isNum(varEstimate?.cvar95) ? varEstimate.cvar95 * 100 : undefined,
-                      2
-                    )}%`}
+                    value={`âˆ’${(safe(varEstimate.cvar95) * 100).toFixed(2)}%`}
                     highlight
                   />
                 </div>
@@ -323,7 +282,7 @@ export default function SymbolDetailPage() {
             </div>
           </div>
 
-          {forecast && info && forecastChartData.length > 0 && (
+          {forecast && info && (
             <div className="rounded-md border border-border bg-card p-5 space-y-4 card-shine">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
@@ -331,10 +290,10 @@ export default function SymbolDetailPage() {
                     Price Forecast
                   </h3>
                   <p className="text-[10px] text-muted-foreground/50 mt-1">
-                    Model: {forecast.modelVersion ?? "—"} · current price anchored
-                    to live quote
+                    Model: {forecast.modelVersion} Â· current price anchored to live quote
                   </p>
                 </div>
+
                 <div className="flex items-center gap-1 bg-secondary/60 rounded-md p-0.5 border border-border">
                   {FORECAST_OPTIONS.map((opt) => (
                     <button
@@ -360,25 +319,12 @@ export default function SymbolDetailPage() {
                       margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
                     >
                       <defs>
-                        <linearGradient
-                          id="forecastBand"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="hsl(var(--primary))"
-                            stopOpacity={0.18}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="hsl(var(--primary))"
-                            stopOpacity={0.02}
-                          />
+                        <linearGradient id="forecastBand" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.18} />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
                         </linearGradient>
                       </defs>
+
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="hsl(216 15% 12%)"
@@ -418,12 +364,7 @@ export default function SymbolDetailPage() {
                         }}
                       />
                       <Area type="monotone" dataKey="upper" stroke="none" fill="none" />
-                      <Area
-                        type="monotone"
-                        dataKey="lower"
-                        stroke="none"
-                        fill="url(#forecastBand)"
-                      />
+                      <Area type="monotone" dataKey="lower" stroke="none" fill="url(#forecastBand)" />
                       <Line
                         type="monotone"
                         dataKey="price"
@@ -437,25 +378,23 @@ export default function SymbolDetailPage() {
                 </div>
 
                 <div className="rounded-md border border-border bg-secondary/30 p-4 space-y-3">
-                  <DataRow
-                    label="Current Price"
-                    value={fmtCurrency(info.price, 2)}
-                  />
+                  <DataRow label="Current Price" value={`$${safe(info.price).toFixed(2)}`} />
                   <DataRow
                     label={`Day ${forecastDays}`}
-                    value={fmtCurrency(dayNPrice, 2)}
+                    value={`$${safe(
+                      forecast.forecastPrices[forecast.forecastPrices.length - 1],
+                    ).toFixed(2)}`}
                   />
                   <DataRow
                     label="Upper Band"
-                    value={fmtCurrency(upperBandLast, 2)}
+                    value={`$${safe(forecast.upperBand[forecast.upperBand.length - 1]).toFixed(2)}`}
                   />
                   <DataRow
                     label="Lower Band"
-                    value={fmtCurrency(lowerBandLast, 2)}
+                    value={`$${safe(forecast.lowerBand[forecast.lowerBand.length - 1]).toFixed(2)}`}
                   />
                   <p className="text-[10px] text-muted-foreground/60 pt-2 border-t border-border">
-                    The backend provides recursive forecast points plus
-                    upper/lower bounds for visual guidance.
+                    The backend provides recursive forecast points plus upper/lower bounds for visual guidance.
                   </p>
                 </div>
               </div>
@@ -468,83 +407,45 @@ export default function SymbolDetailPage() {
                 Financial Ratios
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4">
-                <RatioItem label="P/E Ratio" value={fmt(ratios.pe, 1)} />
-                <RatioItem label="EPS" value={fmtCurrency(ratios.eps, 2)} />
-                <RatioItem label="P/B Ratio" value={fmt(ratios.pb, 1)} />
-                <RatioItem label="P/S Ratio" value={fmt(ratios.ps, 1)} />
-                <RatioItem
-                  label="Debt/Equity"
-                  value={fmt(ratios.debtToEquity, 2)}
-                />
-                <RatioItem
-                  label="Current Ratio"
-                  value={fmt(ratios.currentRatio, 2)}
-                />
-                <RatioItem
-                  label="ROE"
-                  value={fmtPercent(
-                    isNum(ratios.roe) ? ratios.roe * 100 : undefined,
-                    1
-                  )}
-                />
-                <RatioItem
-                  label="ROA"
-                  value={fmtPercent(
-                    isNum(ratios.roa) ? ratios.roa * 100 : undefined,
-                    1
-                  )}
-                />
+                <RatioItem label="P/E Ratio" value={safe(ratios.pe).toFixed(1)} />
+                <RatioItem label="EPS" value={`$${safe(ratios.eps).toFixed(2)}`} />
+                <RatioItem label="P/B Ratio" value={safe(ratios.pb).toFixed(1)} />
+                <RatioItem label="P/S Ratio" value={safe(ratios.ps).toFixed(1)} />
+                <RatioItem label="Debt/Equity" value={safe(ratios.debtToEquity).toFixed(2)} />
+                <RatioItem label="Current Ratio" value={safe(ratios.currentRatio).toFixed(2)} />
+                <RatioItem label="ROE" value={`${(safe(ratios.roe) * 100).toFixed(1)}%`} />
+                <RatioItem label="ROA" value={`${(safe(ratios.roa) * 100).toFixed(1)}%`} />
                 <RatioItem
                   label="Gross Margin"
-                  value={fmtPercent(
-                    isNum(ratios.grossMargin) ? ratios.grossMargin * 100 : undefined,
-                    1
-                  )}
+                  value={`${(safe(ratios.grossMargin) * 100).toFixed(1)}%`}
                 />
                 <RatioItem
                   label="Op. Margin"
-                  value={fmtPercent(
-                    isNum(ratios.operatingMargin)
-                      ? ratios.operatingMargin * 100
-                      : undefined,
-                    1
-                  )}
+                  value={`${(safe(ratios.operatingMargin) * 100).toFixed(1)}%`}
                 />
                 <RatioItem
                   label="Net Margin"
-                  value={fmtPercent(
-                    isNum(ratios.netMargin) ? ratios.netMargin * 100 : undefined,
-                    1
-                  )}
+                  value={`${(safe(ratios.netMargin) * 100).toFixed(1)}%`}
                 />
                 <RatioItem
                   label="Div. Yield"
-                  value={fmtPercent(
-                    isNum(ratios.dividendYield)
-                      ? ratios.dividendYield * 100
-                      : undefined,
-                    2
-                  )}
+                  value={`${(safe(ratios.dividendYield) * 100).toFixed(2)}%`}
                 />
-                <RatioItem label="Beta" value={fmt(ratios.beta, 2)} />
-                <RatioItem
-                  label="Sharpe"
-                  value={fmt(ratios.sharpeRatio, 2)}
-                />
+                <RatioItem label="Beta" value={safe(ratios.beta).toFixed(2)} />
+                <RatioItem label="Sharpe" value={safe(ratios.sharpeRatio).toFixed(2)} />
                 <RatioItem
                   label="Max Drawdown"
-                  value={fmtPercent(
-                    isNum(ratios.maxDrawdown)
-                      ? ratios.maxDrawdown * 100
-                      : undefined,
-                    1
-                  )}
+                  value={`${(safe(ratios.maxDrawdown) * 100).toFixed(1)}%`}
                 />
               </div>
             </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <p className="text-xs text-muted-foreground font-mono">
+          No symbol data available.
+        </p>
+      )}
     </div>
   );
 }
@@ -576,13 +477,8 @@ function DataRow({
 function RatioItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">
-        {label}
-      </p>
-      <p className="text-sm font-mono font-medium text-foreground tabular-nums mt-0.5">
-        {value}
-      </p>
+      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-mono font-medium text-foreground tabular-nums mt-0.5">{value}</p>
     </div>
   );
 }
-

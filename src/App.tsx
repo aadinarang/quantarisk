@@ -13,6 +13,8 @@ import LoginPage from "@/pages/LoginPage";
 import AboutPage from "@/pages/AboutPage";
 import WatchlistPage from "@/pages/WatchlistPage";
 import AccountPage from "@/pages/AccountPage";
+import AlertCenterPage from "@/pages/AlertCenterPage";
+import DataQualityPage from "@/pages/DataQualityPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,8 @@ const App = () => (
               <Route path="/symbol/:symbol" element={<SymbolDetailPage />} />
               <Route path="/drift" element={<DriftPage />} />
               <Route path="/watchlist" element={<WatchlistPage />} />
+              <Route path="/alerts" element={<AlertCenterPage />} />
+              <Route path="/data-quality" element={<DataQualityPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/account" element={<AccountPage />} />

@@ -299,7 +299,7 @@ export default function DashboardPage() {
                 "font-bold",
                 hoveredCorr.v >= 0.8 ? "text-risk-high-text" :
                 hoveredCorr.v >= 0.5 ? "text-risk-medium-text" : "text-risk-low-text"
-              )}>{typeof hoveredCorr?.v === "number" ? hoveredCorr.v.toFixed(2) : "—"}</span>
+              )}>{hoveredCorr.v.toFixed(2)}</span>
               <span className="text-muted-foreground/40 ml-1">
                 {hoveredCorr.v >= 0.8 ? "very high" : hoveredCorr.v >= 0.65 ? "high" : hoveredCorr.v >= 0.5 ? "moderate" : "low"}
               </span>
@@ -483,5 +483,3 @@ function SymbolRow({ symbol, name, price, change, changePercent, isSelected, onS
     </tr>
   );
 }
-
-

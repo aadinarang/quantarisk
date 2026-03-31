@@ -56,7 +56,7 @@ export function SearchBar() {
                 <span className="text-xs text-muted-foreground truncate">{s.name}</span>
               </div>
               <span className={cn("text-xs font-mono", (s.change ?? 0) >= 0 ? "text-risk-low-text" : "text-risk-high-text")}>
-                {(s.change ?? 0) >= 0 ? "+" : ""}{typeof s.changePercent === "number" ? s.changePercent.toFixed(2) : "0.00"}%
+                {(s.change ?? 0) >= 0 ? "+" : ""}{(s.changePercent ?? 0).toFixed(2)}%
               </span>
             </button>
           ))}
@@ -70,4 +70,3 @@ export function SearchBar() {
     </div>
   );
 }
-

@@ -100,13 +100,11 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
         {snap?.currentRisk ? <RiskBadge level={snap.currentRisk} /> : <span className="text-muted-foreground text-xs">—</span>}
       </td>
       <td className="px-4 py-3 font-mono tabular-nums text-right text-xs text-foreground/80">
-        {typeof snap?.currentVolatility === "number" ? snap.currentVolatility.toFixed(4) : "—"}
+        {snap?.currentVolatility?.toFixed(4) ?? "—"}
       </td>
       <td className="px-4 py-3 text-right">
         {snap?.driftFlag ? (
-          <span className="text-risk-high-text text-xs font-mono">
-            {typeof snap?.driftScore === "number" ? snap.driftScore.toFixed(3) : "—"}
-          </span>
+          <span className="text-risk-high-text text-xs font-mono">{typeof snap?.driftScore === "number" ? snap.driftScore.toFixed(3) : "—"}</span>
         ) : (
           <span className="text-muted-foreground text-xs">—</span>
         )}
@@ -125,5 +123,3 @@ function WatchlistRow({ symbol, onRemove, onNavigate }: { symbol: string; onRemo
     </tr>
   );
 }
-
-

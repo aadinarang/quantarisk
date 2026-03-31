@@ -5,6 +5,81 @@ if (!import.meta.env.VITE_API_URL) {
   console.warn("[QuantaRisk] VITE_API_URL is not set - falling back to localhost");
 }
 
+export type RiskLevel = "Low" | "Medium" | "High" | string;
+
+export interface SymbolItem {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  exchange: string;
+  sector: string;
+}
+
+export interface RiskSnapshot {
+  symbol: string;
+  currentRisk: RiskLevel;
+  currentVolatility: number;
+  driftFlag: boolean;
+  driftScore: number;
+}
+
+export interface RiskHistoryPoint {
+  date: string;
+  volatility: number;
+  riskLevel: RiskLevel;
+}
+
+export interface RiskHistoryResponse {
+  points: RiskHistoryPoint[];
+}
+
+export interface SymbolRatios {
+  pe: number;
+  eps: number;
+  pb: number;
+  ps: number;
+  debtToEquity: number;
+  currentRatio: number;
+  roe: number;
+  roa: number;
+  grossMargin: number;
+  operatingMargin: number;
+  netMargin: number;
+  dividendYield: number;
+  beta: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+}
+
+export interface UserPreferences {
+  emailAlerts: boolean;
+  driftAlerts: boolean;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string;
+  preferences: UserPreferences;
+  createdAt: string;
+}
+
+export interface RiskOverview {
+  totalSymbols: number;
+  highRiskCount: number;
+  mediumRiskCount: number;
+  lowRiskCount: number;
+  lastUpdated: string;
+}
+
+export interface DriftSummaryItem {
+  symbol: string;
+  driftFlag: boolean;
+  driftScore: number;
+}
+
 export const apiUrl = (path: string): string => {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE}${normalized}`;
@@ -24,6 +99,7 @@ const getJson = async (path: string, options?: RequestInit) => {
   if (!headers.has("Content-Type") && !(options?.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
+
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -57,7 +133,17 @@ const str = (value: unknown, fallback = ""): string => {
   return typeof value === "string" ? value : fallback;
 };
 
-const normalizeSymbol = (s: any) => ({
+const normalizeRiskLevel = (value: unknown): RiskLevel => {
+  const raw = str(value).trim().toLowerCase();
+
+  if (raw === "low") return "Low";
+  if (raw === "medium") return "Medium";
+  if (raw === "high") return "High";
+
+  return str(value, "Low");
+};
+
+const normalizeSymbol = (s: any): SymbolItem => ({
   symbol: str(s.symbol ?? s.ticker),
   name: str(s.name ?? s.companyName ?? s.security_name),
   price: num(s.price ?? s.currentPrice ?? s.current_price ?? s.close),
@@ -67,15 +153,21 @@ const normalizeSymbol = (s: any) => ({
   sector: str(s.sector ?? s.industry ?? ""),
 });
 
-const normalizeSnapshot = (s: any) => ({
+const normalizeSnapshot = (s: any): RiskSnapshot => ({
   symbol: str(s.symbol ?? s.ticker),
-  currentRisk: str(s.currentRisk ?? s.risk ?? s.riskLevel ?? s.risk_level),
+  currentRisk: normalizeRiskLevel(s.currentRisk ?? s.risk ?? s.riskLevel ?? s.risk_level),
   currentVolatility: num(s.currentVolatility ?? s.volatility ?? s.current_volatility),
   driftFlag: Boolean(s.driftFlag ?? s.drift_flag),
   driftScore: num(s.driftScore ?? s.drift_score),
 });
 
-const normalizeRatios = (r: any) => ({
+const normalizeHistoryPoint = (p: any): RiskHistoryPoint => ({
+  date: str(p.date ?? p.timestamp ?? p.datetime),
+  volatility: num(p.volatility ?? p.value ?? p.close ?? p.price),
+  riskLevel: normalizeRiskLevel(p.riskLevel ?? p.risk_level ?? p.risk),
+});
+
+const normalizeRatios = (r: any): SymbolRatios => ({
   pe: num(r.pe ?? r.peRatio ?? r.pe_ratio),
   eps: num(r.eps),
   pb: num(r.pb ?? r.pbRatio ?? r.priceToBook),
@@ -93,7 +185,7 @@ const normalizeRatios = (r: any) => ({
   maxDrawdown: num(r.maxDrawdown ?? r.max_drawdown),
 });
 
-const normalizeUser = (u: any) => ({
+const normalizeUser = (u: any): UserProfile => ({
   id: num(u?.id),
   email: str(u?.email),
   name: str(u?.name),
@@ -105,7 +197,7 @@ const normalizeUser = (u: any) => ({
 });
 
 export const api = {
-  getSymbols: async () => {
+  getSymbols: async (): Promise<SymbolItem[]> => {
     const data = await getJson("/api/symbols");
     return Array.isArray(data)
       ? data.map(normalizeSymbol)
@@ -114,54 +206,43 @@ export const api = {
         : [];
   },
 
-  getRiskOverview: async () => {
+  getRiskOverview: async (): Promise<RiskOverview> => {
     const data = await getJson("/api/risk/overview");
     return {
-      totalSymbols: num(data.totalSymbols),
-      highRiskCount: num(data.highRiskCount),
-      mediumRiskCount: num(data.mediumRiskCount),
-      lowRiskCount: num(data.lowRiskCount),
-      lastUpdated: str(data.lastUpdated),
+      totalSymbols: num(data?.totalSymbols),
+      highRiskCount: num(data?.highRiskCount),
+      mediumRiskCount: num(data?.mediumRiskCount),
+      lowRiskCount: num(data?.lowRiskCount),
+      lastUpdated: str(data?.lastUpdated),
     };
   },
 
-  getRiskSnapshot: async (symbol: string) => {
+  getRiskSnapshot: async (symbol: string): Promise<RiskSnapshot> => {
     const data = await getJson(`/api/risk/snapshot?symbol=${encodeURIComponent(symbol)}`);
     return normalizeSnapshot(data);
   },
 
-  getRiskHistory: async (symbol: string) => {
+  getRiskHistory: async (symbol: string): Promise<RiskHistoryResponse> => {
     const data = await getJson(`/api/risk/history?symbol=${encodeURIComponent(symbol)}`);
 
     if (Array.isArray(data)) {
       return {
-        points: data.map((p: any) => ({
-          date: str(p.date ?? p.timestamp ?? p.datetime),
-          value: num(p.value ?? p.volatility ?? p.close ?? p.price),
-        })),
+        points: data.map(normalizeHistoryPoint),
       };
     }
 
     if (Array.isArray(data?.points)) {
       return {
-        points: data.points.map((p: any) => ({
-          date: str(p.date ?? p.timestamp ?? p.datetime),
-          value: num(p.value ?? p.volatility ?? p.close ?? p.price),
-        })),
+        points: data.points.map(normalizeHistoryPoint),
       };
     }
 
     return {
-      points: Array.isArray(data?.history)
-        ? data.history.map((p: any) => ({
-            date: str(p.date ?? p.timestamp ?? p.datetime),
-            value: num(p.value ?? p.volatility ?? p.close ?? p.price),
-          }))
-        : [],
+      points: Array.isArray(data?.history) ? data.history.map(normalizeHistoryPoint) : [],
     };
   },
 
-  getDriftSummary: async () => {
+  getDriftSummary: async (): Promise<DriftSummaryItem[]> => {
     const data = await getJson("/api/drift/summary");
     return Array.isArray(data)
       ? data.map((d: any) => ({
@@ -172,12 +253,12 @@ export const api = {
       : [];
   },
 
-  getSymbolRatios: async (symbol: string) => {
+  getSymbolRatios: async (symbol: string): Promise<SymbolRatios> => {
     const data = await getJson(`/api/ratios?symbol=${encodeURIComponent(symbol)}`);
     return normalizeRatios(data);
   },
 
-  searchSymbols: async (query: string) => {
+  searchSymbols: async (query: string): Promise<SymbolItem[]> => {
     const data = await getJson(`/api/symbols/search?q=${encodeURIComponent(query)}`);
     return Array.isArray(data) ? data.map(normalizeSymbol) : [];
   },
@@ -187,9 +268,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+
     if (data?.access_token) {
       auth.setToken(data.access_token);
     }
+
     return {
       accessToken: str(data?.access_token),
       user: normalizeUser(data?.user),
@@ -201,23 +284,25 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+
     if (data?.access_token) {
       auth.setToken(data.access_token);
     }
+
     return {
       accessToken: str(data?.access_token),
       user: normalizeUser(data?.user),
     };
   },
 
-  logout: () => auth.clearToken(),
+  logout: (): void => auth.clearToken(),
 
-  getMe: async () => {
+  getMe: async (): Promise<UserProfile> => {
     const data = await getJson("/api/me");
     return normalizeUser(data);
   },
 
-  updateMe: async (payload: { name?: string; email?: string }) => {
+  updateMe: async (payload: { name?: string; email?: string }): Promise<UserProfile> => {
     const data = await getJson("/api/me", {
       method: "PUT",
       body: JSON.stringify(payload),
@@ -225,7 +310,9 @@ export const api = {
     return normalizeUser(data);
   },
 
-  updatePreferences: async (payload: { emailAlerts?: boolean; driftAlerts?: boolean }) => {
+  updatePreferences: async (
+    payload: { emailAlerts?: boolean; driftAlerts?: boolean },
+  ): Promise<UserProfile> => {
     const data = await getJson("/api/me/preferences", {
       method: "PUT",
       body: JSON.stringify(payload),
@@ -233,12 +320,12 @@ export const api = {
     return normalizeUser(data);
   },
 
-  getWatchlist: async () => {
+  getWatchlist: async (): Promise<string[]> => {
     const data = await getJson("/api/watchlist");
     return Array.isArray(data) ? data.map((item) => str(item).toUpperCase()).filter(Boolean) : [];
   },
 
-  addToWatchlist: async (symbol: string) => {
+  addToWatchlist: async (symbol: string): Promise<boolean> => {
     await getJson("/api/watchlist", {
       method: "POST",
       body: JSON.stringify({ symbol }),
@@ -246,7 +333,7 @@ export const api = {
     return true;
   },
 
-  removeFromWatchlist: async (symbol: string) => {
+  removeFromWatchlist: async (symbol: string): Promise<boolean> => {
     await getJson(`/api/watchlist/${encodeURIComponent(symbol)}`, {
       method: "DELETE",
     });
