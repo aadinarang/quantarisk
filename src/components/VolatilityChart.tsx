@@ -1,139 +1,254 @@
+import { useMemo, useState } from "react";
 import {
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  Area, AreaChart, ReferenceLine, ReferenceArea,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Area,
+  AreaChart,
+  ReferenceLine,
+  ReferenceArea,
 } from "recharts";
-import type { HistoryPoint } from "@/lib/api";
-import { useMemo } from "react";
+import { cn } from "@/lib/utils";
+import type { RiskHistoryPoint } from "@/lib/api";
 
-function isNum(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+type TimeRange = "1W" | "1M" | "3M" | "6M" | "1Y";
+
+const RANGE_DAYS: Record<TimeRange, number> = {
+  "1W": 7,
+  "1M": 30,
+  "3M": 90,
+  "6M": 180,
+  "1Y": 365,
+};
+
+function pct(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const i = Math.floor(sorted.length * p);
+  return sorted[Math.min(i, sorted.length - 1)];
 }
 
-function fmtNum(value: unknown, digits = 4, fallback = "�") {
-  return isNum(value) ? value.toFixed(digits) : fallback;
-}
+const normalizeRiskLevel = (riskLevel?: string) => {
+  const raw = (riskLevel ?? "").trim().toLowerCase();
+  if (raw === "high") return "High";
+  if (raw === "medium") return "Medium";
+  return "Low";
+};
+
+const riskColor = (riskLevel?: string) => {
+  const normalized = normalizeRiskLevel(riskLevel);
+  if (normalized === "High") return "#ff3d71";
+  if (normalized === "Medium") return "#ffaa00";
+  return "#00e676";
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+
+  const vol = payload[0]?.value as number;
+  const point = payload[0]?.payload as RiskHistoryPoint;
+
+  return (
+    <div className="bg-card border border-border rounded px-3 py-2 text-xs font-mono shadow-lg space-y-0.5">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="text-foreground">
+        Vol: <span className="font-semibold">{Number(vol ?? 0).toFixed(4)}</span>
+      </p>
+      <p style={{ color: riskColor(point?.riskLevel) }}>
+        Risk: {normalizeRiskLevel(point?.riskLevel)}
+      </p>
+    </div>
+  );
+};
 
 interface Props {
-  points: HistoryPoint[];
+  points: RiskHistoryPoint[];
   height?: number;
+  showRangePicker?: boolean;
+  defaultRange?: TimeRange;
   showBands?: boolean;
   days?: number;
 }
 
-function quantile(arr: number[], q: number): number {
-  const sorted = [...arr].sort((a, b) => a - b);
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (sorted[base + 1] !== undefined) {
-    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-  }
-  return sorted[base];
-}
+export function VolatilityChart({
+  points,
+  height = 300,
+  showRangePicker = true,
+  defaultRange = "3M",
+  showBands = true,
+  days,
+}: Props) {
+  const initialRange = useMemo<TimeRange>(() => {
+    if (days !== undefined) {
+      if (days <= 7) return "1W";
+      if (days <= 30) return "1M";
+      if (days <= 90) return "3M";
+      if (days <= 180) return "6M";
+      return "1Y";
+    }
+    return defaultRange;
+  }, [days, defaultRange]);
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+  const [range, setRange] = useState<TimeRange>(initialRange);
 
-export function VolatilityChart({ points, height = 300, showBands = true, days }: Props) {
   const filtered = useMemo(() => {
-    if (!days || days >= 9999) return points;
-    return points.slice(-days);
-  }, [points, days]);
+    const sliceDays = days ?? RANGE_DAYS[range];
+    return points.slice(-sliceDays);
+  }, [points, range, days]);
 
-  const { lowThreshold, highThreshold, yMin, yMax } = useMemo(() => {
-    const vols = filtered
-      .map((p) => p.volatility)
-      .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  const { lowMed, medHigh } = useMemo(() => {
+    const vols = [...points]
+      .map((p) => Number(p.volatility) || 0)
+      .sort((a, b) => a - b);
 
-    if (vols.length === 0) {
-      return { lowThreshold: 0.02, highThreshold: 0.035, yMin: 0, yMax: 0.06 };
+    return {
+      lowMed: parseFloat(pct(vols, 0.5).toFixed(4)),
+      medHigh: parseFloat(pct(vols, 0.8).toFixed(4)),
+    };
+  }, [points]);
+
+  const { yMin, yMax } = useMemo(() => {
+    if (filtered.length === 0) {
+      return { yMin: 0, yMax: 1 };
     }
 
-    const low = quantile(vols, 0.50);
-    const high = quantile(vols, 0.80);
-    const min = Math.max(0, Math.min(...vols) * 0.9);
-    const max = Math.max(...vols) * 1.1;
+    const values = filtered.map((p) => Number(p.volatility) || 0);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
 
-    return { lowThreshold: low, highThreshold: high, yMin: min, yMax: max };
+    return {
+      yMin: Math.max(0, min * 0.88),
+      yMax: Math.max(max * 1.12, 0.01),
+    };
   }, [filtered]);
 
-  const tickInterval = useMemo(() => {
-    const n = filtered.length;
-    if (n <= 10) return 0;
-    if (n <= 30) return 4;
-    if (n <= 90) return 13;
-    if (n <= 180) return 25;
-    return 50;
-  }, [filtered.length]);
+  const tickInterval =
+    range === "1W" ? 0 : range === "1M" ? 6 : range === "3M" ? 14 : range === "6M" ? 29 : 59;
 
-  const displayData = filtered.map((p) => ({
-    ...p,
-    displayDate: formatDate(p.date),
-  }));
+  if (!points.length) {
+    return (
+      <div
+        className="rounded-lg border border-border bg-card/50 flex items-center justify-center text-sm text-muted-foreground"
+        style={{ height }}
+      >
+        No volatility history available.
+      </div>
+    );
+  }
 
   return (
-    <div className="animate-fade-in">
-      {showBands && (
-        <div className="flex items-center gap-4 mb-3">
-          <BandLegend color="hsl(var(--risk-low) / 0.25)" label="Low" />
-          <BandLegend color="hsl(var(--risk-medium) / 0.20)" label="Medium" />
-          <BandLegend color="hsl(var(--risk-high) / 0.20)" label="High" />
+    <div className="space-y-3 animate-fade-in">
+      {showRangePicker && days === undefined && (
+        <div className="flex items-center gap-1">
+          {(["1W", "1M", "3M", "6M", "1Y"] as TimeRange[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={cn(
+                "px-2.5 py-1 text-[10px] font-mono rounded transition-all",
+                r === range
+                  ? "bg-primary/15 text-primary border border-primary/25"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent",
+              )}
+            >
+              {r}
+            </button>
+          ))}
+          <span className="ml-auto text-[9px] font-mono text-muted-foreground/40">
+            {filtered.length} days
+          </span>
         </div>
       )}
+
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={displayData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+        <AreaChart data={filtered} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="volGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(153 100% 50%)" stopOpacity={0.2} />
-              <stop offset="60%" stopColor="hsl(153 100% 50%)" stopOpacity={0.04} />
+              <stop offset="0%" stopColor="hsl(153 100% 50%)" stopOpacity={0.18} />
+              <stop offset="70%" stopColor="hsl(153 100% 50%)" stopOpacity={0.03} />
               <stop offset="100%" stopColor="hsl(153 100% 50%)" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           {showBands && (
             <>
-              <ReferenceArea y1={yMin} y2={lowThreshold} fill="hsl(153 100% 50%)" fillOpacity={0.06} stroke="none" />
-              <ReferenceArea y1={lowThreshold} y2={highThreshold} fill="hsl(42 100% 50%)" fillOpacity={0.06} stroke="none" />
-              <ReferenceArea y1={highThreshold} y2={yMax} fill="hsl(345 100% 59%)" fillOpacity={0.06} stroke="none" />
-              <ReferenceLine y={lowThreshold} stroke="hsl(42 100% 50%)" strokeOpacity={0.4} strokeDasharray="4 4" strokeWidth={1} />
-              <ReferenceLine y={highThreshold} stroke="hsl(345 100% 59%)" strokeOpacity={0.4} strokeDasharray="4 4" strokeWidth={1} />
+              <ReferenceArea
+                y1={yMin}
+                y2={lowMed}
+                fill="hsl(153 100% 50%)"
+                fillOpacity={0.04}
+                stroke="none"
+              />
+              <ReferenceArea
+                y1={lowMed}
+                y2={medHigh}
+                fill="hsl(42 100% 50%)"
+                fillOpacity={0.05}
+                stroke="none"
+              />
+              <ReferenceArea
+                y1={medHigh}
+                y2={yMax}
+                fill="hsl(345 100% 59%)"
+                fillOpacity={0.06}
+                stroke="none"
+              />
+
+              <ReferenceLine
+                y={lowMed}
+                stroke="hsl(153 100% 50%)"
+                strokeOpacity={0.35}
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                label={{
+                  value: "LOW·MED",
+                  position: "insideTopRight",
+                  fontSize: 8,
+                  fontFamily: "JetBrains Mono",
+                  fill: "hsl(153 100% 50% / 0.5)",
+                }}
+              />
+              <ReferenceLine
+                y={medHigh}
+                stroke="hsl(345 100% 59%)"
+                strokeOpacity={0.35}
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                label={{
+                  value: "MED·HIGH",
+                  position: "insideTopRight",
+                  fontSize: 8,
+                  fontFamily: "JetBrains Mono",
+                  fill: "hsl(345 100% 59% / 0.5)",
+                }}
+              />
             </>
           )}
 
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(216 15% 12%)" strokeOpacity={0.4} vertical={false} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="hsl(216 15% 12%)"
+            strokeOpacity={0.4}
+            vertical={false}
+          />
           <XAxis
-            dataKey="displayDate"
+            dataKey="date"
             tick={{ fill: "hsl(217 15% 38%)", fontSize: 9, fontFamily: "JetBrains Mono" }}
             tickLine={false}
             axisLine={false}
             interval={tickInterval}
+            tickFormatter={(v) => String(v).slice(5)}
           />
           <YAxis
             domain={[yMin, yMax]}
             tick={{ fill: "hsl(217 15% 38%)", fontSize: 9, fontFamily: "JetBrains Mono" }}
             tickLine={false}
             axisLine={false}
-            width={50}
-            tickFormatter={(v: unknown) => fmtNum(v, 3)}
+            width={44}
+            tickFormatter={(v) => Number(v).toFixed(3)}
           />
-          <Tooltip
-            labelFormatter={(label) => `Date: ${label}`}
-            formatter={(value: unknown, name: string) => [
-              fmtNum(value, 4),
-              name === "volatility" ? "Volatility" : name,
-            ]}
-            contentStyle={{
-              backgroundColor: "hsl(216 28% 7%)",
-              border: "1px solid hsl(216 20% 14%)",
-              borderRadius: 4,
-              fontSize: 10,
-              fontFamily: "JetBrains Mono",
-              color: "hsl(213 20% 92%)",
-              padding: "6px 10px",
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Area
             type="monotone"
             dataKey="volatility"
@@ -141,19 +256,32 @@ export function VolatilityChart({ points, height = 300, showBands = true, days }
             strokeWidth={1.5}
             fill="url(#volGradient)"
             dot={false}
-            activeDot={{ r: 3, fill: "hsl(153 100% 50%)", stroke: "hsl(153 100% 50% / 0.3)", strokeWidth: 4 }}
+            activeDot={{
+              r: 3,
+              fill: "hsl(153 100% 50%)",
+              stroke: "hsl(153 100% 50% / 0.3)",
+              strokeWidth: 4,
+            }}
           />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
-  );
-}
 
-function BandLegend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: color, border: "1px solid " + color }} />
-      <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{label}</span>
+      {showBands && (
+        <div className="flex items-center gap-4 text-[9px] font-mono text-muted-foreground/50 px-1">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-sm bg-risk-low/20 border border-risk-low/30 inline-block" />
+            Low zone
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-sm bg-risk-medium/20 border border-risk-medium/30 inline-block" />
+            Medium zone
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-sm bg-risk-high/20 border border-risk-high/30 inline-block" />
+            High zone
+          </span>
+        </div>
+      )}
     </div>
   );
 }
